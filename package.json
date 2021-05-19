@@ -1,0 +1,23 @@
+{
+  "name": "beam-ethrelay",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BeamMW/beam-ethrelay.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BeamMW/beam-ethrelay/issues"
+  },
+  "homepage": "https://github.com/BeamMW/beam-ethrelay#readme",
+  "dependencies": {
+    "web3": "^1.3.6"
+  }
+}
