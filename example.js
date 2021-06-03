@@ -1,6 +1,9 @@
 require('dotenv').config();
 
 const beam = require('./utils/beam_utils.js');
+const Web3 = require('web3');
+
+let web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8543'));
 
 async function waitTx(txId) {
     const sleep = (milliseconds) => {
@@ -18,12 +21,20 @@ async function waitTx(txId) {
 
 (async () => {
     let promise = beam.readPk();
-    let result = await promise;    
+    let result = await promise;
     
     //console.log(result);
 
+    let blockHeight = await web3.eth.getBlockNumber();
+
+    console.log('block height = ', blockHeight);
+
+    let block = await web3.eth.getBlock(blockHeight);
+
+    console.log('block = ', block);
+
     console.log('import message')
-    promise = beam.importMsg(4000000, result);
+    promise = beam.importMsg(4000000, result, block);
     result = await promise;
     await waitTx(result);
 

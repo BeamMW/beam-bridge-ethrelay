@@ -64,9 +64,25 @@ exports.readPk = () => {
     });
 };
 
-exports.importMsg = (amount, pubkey) => {
+exports.importMsg = (amount, pubkey, block) => {
     return new Promise((resolve, reject) => {
         let client = new Net.Socket();
+
+        let params = ',amount=' + amount + ',pubkey=' + pubkey;
+        params += ',parentHash=' + block.parentHash.substring(2);
+        params += ',uncleHash=' + block.sha3Uncles.substring(2);
+        params += ',coinbase=' + block.miner.substring(2);
+        params += ',root=' + block.stateRoot.substring(2);
+        params += ',txHash=' + block.transactionsRoot.substring(2);
+        params += ',receiptHash=' + block.receiptsRoot.substring(2);
+        params += ',bloom=' + block.logsBloom.substring(2);
+        params += ',extra=' + block.extraData.substring(2);
+        params += ',difficulty=' + block.totalDifficulty;
+        params += ',number=' + block.number;
+        params += ',gasLimit=' + block.gasLimit;
+        params += ',gasUsed=' + block.gasUsed;
+        params += ',time=' + block.timestamp;
+        params += ',nonce=' + block.nonce.substring(2);
         
         client.connect(process.env.BEAM_PORT, process.env.BEAM_HOST, () => {
             client.write(JSON.stringify(
@@ -76,7 +92,7 @@ exports.importMsg = (amount, pubkey) => {
                     method: 'invoke_contract',
                     params: {
                         "contract_file": 'shaders/bridge/app.wasm',
-                        "args": 'role=manager,action=importMsg,cid=' + process.env.CID + ',amount=' + amount + ',pubkey=' + pubkey
+                        "args": 'role=manager,action=importMsg,cid=' + process.env.CID + params
                     }
                 }) + '\n');
         });
