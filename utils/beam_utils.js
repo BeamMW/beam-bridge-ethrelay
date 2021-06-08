@@ -64,7 +64,7 @@ exports.readPk = () => {
     });
 };
 
-exports.importMsg = (amount, pubkey, block) => {
+exports.importMsg = (amount, pubkey, block, proof) => {
     return new Promise((resolve, reject) => {
         let client = new Net.Socket();
 
@@ -83,6 +83,7 @@ exports.importMsg = (amount, pubkey, block) => {
         params += ',gasUsed=' + block.gasUsed;
         params += ',time=' + block.timestamp;
         params += ',nonce=' + block.nonce.substring(2);
+        params += ',proof=' + proof;
         
         client.connect(process.env.BEAM_PORT, process.env.BEAM_HOST, () => {
             client.write(JSON.stringify(
@@ -187,14 +188,14 @@ exports.getStatusTx = (txId) => {
                     id: 123,
                     method: 'tx_status',
                     params: {
-                        "txId": txId                        
+                        "txId": txId
                     }
                 }) + '\n');
         });
 
         client.on('data', function(data) {
             let res = JSON.parse(data);
-            //console.log(res);            
+            //console.log(res);
             resolve(res);
             client.destroy();
         });
