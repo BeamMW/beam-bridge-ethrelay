@@ -30,9 +30,10 @@ exports.readMessages = () => {
     });
 };
 
-exports.readPk = () => {
+function baseFunction(args, processResult) {
     return new Promise((resolve, reject) => {
         let client = new Net.Socket();
+        let accumulated = '';
         
         client.connect(process.env.BEAM_PORT, process.env.BEAM_HOST, () => {
             client.write(JSON.stringify(
@@ -42,18 +43,17 @@ exports.readPk = () => {
                     method: 'invoke_contract',
                     params: {
                         "contract_file": 'shaders/bridge/app.wasm',
-                        "args": 'role=manager,action=generatePK,cid=' + process.env.CID
+                        "args": args
                     }
                 }) + '\n');
         });
 
         client.on('data', function(data) {
-            let res = JSON.parse(data);
-            let output = JSON.parse(res['result']['output']);
-
-
-            resolve(output['pubkey']);
-            client.destroy();
+            accumulated += data;
+            if (data.indexOf('\n') != -1) {
+                resolve(processResult(accumulated));
+                client.destroy();
+            }
         });
 
         client.on('close', function() {
@@ -62,119 +62,62 @@ exports.readPk = () => {
 
         client.on('error', reject);
     });
+}
+
+exports.readPk = () => {
+    return baseFunction(
+        'role=manager,action=generatePK,cid=' + process.env.CID,
+        (data) => {
+            let res = JSON.parse(data);
+            let output = JSON.parse(res['result']['output']);
+            return output['pubkey'];
+        }
+    );
 };
 
 exports.importMsg = (amount, pubkey, block, proof) => {
-    return new Promise((resolve, reject) => {
-        let client = new Net.Socket();
+    let args = 'role=manager,action=importMsg,cid=' + process.env.CID;
+    args += ',amount=' + amount + ',pubkey=' + pubkey;
+    args += ',parentHash=' + block.parentHash.substring(2);
+    args += ',uncleHash=' + block.sha3Uncles.substring(2);
+    args += ',coinbase=' + block.miner.substring(2);
+    args += ',root=' + block.stateRoot.substring(2);
+    args += ',txHash=' + block.transactionsRoot.substring(2);
+    args += ',receiptHash=' + block.receiptsRoot.substring(2);
+    args += ',bloom=' + block.logsBloom.substring(2);
+    args += ',extra=' + block.extraData.substring(2);
+    args += ',difficulty=' + block.totalDifficulty;
+    args += ',number=' + block.number;
+    args += ',gasLimit=' + block.gasLimit;
+    args += ',gasUsed=' + block.gasUsed;
+    args += ',time=' + block.timestamp;
+    args += ',nonce=' + block.nonce.substring(2);
+    args += ',proof=' + proof;
 
-        let params = ',amount=' + amount + ',pubkey=' + pubkey;
-        params += ',parentHash=' + block.parentHash.substring(2);
-        params += ',uncleHash=' + block.sha3Uncles.substring(2);
-        params += ',coinbase=' + block.miner.substring(2);
-        params += ',root=' + block.stateRoot.substring(2);
-        params += ',txHash=' + block.transactionsRoot.substring(2);
-        params += ',receiptHash=' + block.receiptsRoot.substring(2);
-        params += ',bloom=' + block.logsBloom.substring(2);
-        params += ',extra=' + block.extraData.substring(2);
-        params += ',difficulty=' + block.totalDifficulty;
-        params += ',number=' + block.number;
-        params += ',gasLimit=' + block.gasLimit;
-        params += ',gasUsed=' + block.gasUsed;
-        params += ',time=' + block.timestamp;
-        params += ',nonce=' + block.nonce.substring(2);
-        params += ',proof=' + proof;
-        
-        client.connect(process.env.BEAM_PORT, process.env.BEAM_HOST, () => {
-            client.write(JSON.stringify(
-                {
-                    jsonrpc: '2.0',
-                    id: 123,
-                    method: 'invoke_contract',
-                    params: {
-                        "contract_file": 'shaders/bridge/app.wasm',
-                        "args": 'role=manager,action=importMsg,cid=' + process.env.CID + params
-                    }
-                }) + '\n');
-        });
-
-        client.on('data', function(data) {
-            let res = JSON.parse(data);
-            //console.log(res);
-            resolve(res['result']['txid']);
-            client.destroy();
-        });
-
-        client.on('close', function() {
-            //console.log('Connection closed');
-        });
-
-        client.on('error', reject);
+    return baseFunction(args, (data) => {
+        let res = JSON.parse(data);
+        return res['result']['txid'];
     });
 };
 
 exports.finalizeMsg = () => {
-    return new Promise((resolve, reject) => {
-        let client = new Net.Socket();
-        
-        client.connect(process.env.BEAM_PORT, process.env.BEAM_HOST, () => {
-            client.write(JSON.stringify(
-                {
-                    jsonrpc: '2.0',
-                    id: 123,
-                    method: 'invoke_contract',
-                    params: {
-                        "contract_file": 'shaders/bridge/app.wasm',
-                        "args": 'role=manager,action=finalizeMsg,cid=' + process.env.CID
-                    }
-                }) + '\n');
-        });
-
-        client.on('data', function(data) {
+    return baseFunction(
+        'role=manager,action=finalizeMsg,cid=' + process.env.CID,
+        (data) => {
             let res = JSON.parse(data);
-            //console.log(res);
-            resolve(res['result']['txid']);
-            client.destroy();
-        });
-
-        client.on('close', function() {
-            //console.log('Connection closed');
-        });
-
-        client.on('error', reject);
-    });
+            return res['result']['txid'];
+        }
+    );
 };
 
 exports.unlock = () => {
-    return new Promise((resolve, reject) => {
-        let client = new Net.Socket();
-        
-        client.connect(process.env.BEAM_PORT, process.env.BEAM_HOST, () => {
-            client.write(JSON.stringify(
-                {
-                    jsonrpc: '2.0',
-                    id: 123,
-                    method: 'invoke_contract',
-                    params: {
-                        "contract_file": 'shaders/bridge/app.wasm',
-                        "args": 'role=manager,action=unlock,cid=' + process.env.CID
-                    }
-                }) + '\n');
-        });
-
-        client.on('data', function(data) {
+    return baseFunction(
+        'role=manager,action=unlock,cid=' + process.env.CID,
+        (data) => {
             let res = JSON.parse(data);
-            //console.log(res);
-            resolve(res['result']['txid']);
-            client.destroy();
-        });
-
-        client.on('close', function() {
-            //console.log('Connection closed');
-        });
-
-        client.on('error', reject);
-    });
+            return res['result']['txid'];
+        }
+    );
 };
 
 exports.getStatusTx = (txId) => {
