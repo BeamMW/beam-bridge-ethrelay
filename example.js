@@ -66,7 +66,7 @@ function requestProof(number, seed) {
 
             if (data.indexOf('\n') != -1) {
                 let res = JSON.parse(acc);
-                resolve(res['result']['proof']);
+                resolve([res['result']['proof'], res['result']['dataset_count']]);
                 client.destroy();
             }
         });
@@ -96,10 +96,10 @@ function requestProof(number, seed) {
     let seed = generateSeed(block);
 
     promise = requestProof(Math.floor(block.number / 30000), seed);
-    let proof = await promise;
+    let [proof, datasetCount] = await promise;
 
     console.log('import message')
-    promise = beam.importMsg(4000000, result, block, proof);
+    promise = beam.importMsg(4000000, result, block, proof, datasetCount);
     result = await promise;
     await waitTx(result);
 

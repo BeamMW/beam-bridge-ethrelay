@@ -75,7 +75,7 @@ exports.readPk = () => {
     );
 };
 
-exports.importMsg = (amount, pubkey, block, proof) => {
+exports.importMsg = (amount, pubkey, block, proof, datasetCount) => {
     let args = 'role=manager,action=importMsg,cid=' + process.env.CID;
     args += ',amount=' + amount + ',pubkey=' + pubkey;
     args += ',parentHash=' + block.parentHash.substring(2);
@@ -93,6 +93,7 @@ exports.importMsg = (amount, pubkey, block, proof) => {
     args += ',time=' + block.timestamp;
     args += ',nonce=' + block.nonce.substring(2);
     args += ',proof=' + proof;
+    args += ',datasetCount=' + datasetCount;
 
     return baseFunction(args, (data) => {
         let res = JSON.parse(data);
