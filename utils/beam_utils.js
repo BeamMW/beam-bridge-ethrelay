@@ -86,18 +86,42 @@ exports.importMsg = (amount, pubkey, block, proof, datasetCount) => {
     args += ',receiptHash=' + block.receiptsRoot.substring(2);
     args += ',bloom=' + block.logsBloom.substring(2);
     args += ',extra=' + block.extraData.substring(2);
-    args += ',difficulty=' + block.totalDifficulty;
+    args += ',difficulty=' + block.difficulty;
     args += ',number=' + block.number;
     args += ',gasLimit=' + block.gasLimit;
     args += ',gasUsed=' + block.gasUsed;
     args += ',time=' + block.timestamp;
-    args += ',nonce=' + block.nonce.substring(2);
+    args += ',nonce=' + BigInt(block.nonce).toString();
     args += ',proof=' + proof;
     args += ',datasetCount=' + datasetCount;
 
     return baseFunction(args, (data) => {
         let res = JSON.parse(data);
         return res['result']['txid'];
+    });
+};
+
+exports.genearateSeed = (block) => {
+    let args = 'role=manager,action=generateSeed';
+    args += ',parentHash=' + block.parentHash.substring(2);
+    args += ',uncleHash=' + block.sha3Uncles.substring(2);
+    args += ',coinbase=' + block.miner.substring(2);
+    args += ',root=' + block.stateRoot.substring(2);
+    args += ',txHash=' + block.transactionsRoot.substring(2);
+    args += ',receiptHash=' + block.receiptsRoot.substring(2);
+    args += ',bloom=' + block.logsBloom.substring(2);
+    args += ',extra=' + block.extraData.substring(2);
+    args += ',difficulty=' + block.difficulty;
+    args += ',number=' + block.number;
+    args += ',gasLimit=' + block.gasLimit;
+    args += ',gasUsed=' + block.gasUsed;
+    args += ',time=' + block.timestamp;
+    args += ',nonce=' + BigInt(block.nonce).toString();
+    
+    return baseFunction(args, (data) => {
+        let res = JSON.parse(data);
+        let output = JSON.parse(res['result']['output']);
+        return output['seed'];
     });
 };
 

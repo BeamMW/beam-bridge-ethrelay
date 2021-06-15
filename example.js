@@ -107,10 +107,19 @@ function requestProof(number, seed) {
 
     console.log('block = ', block);
 
-    let seed = generateSeed(block);
+    //let seed = generateSeed(block);
 
-    promise = requestProof(Math.floor(block.number / 30000), seed);
+    let epoch = Math.floor(block.number / 30000);
+
+    promise = beam.genearateSeed(block);
+    let seed = await promise;
+
+    promise = requestProof(epoch, seed);
     let [proof, datasetCount] = await promise;
+
+    console.log('epoch = ', epoch);
+    console.log('seed = ', seed);
+    //console.log('proof = ', proof);
 
     console.log('import message')
     promise = beam.importMsg(4000000, result, block, proof, datasetCount);
