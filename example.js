@@ -4,6 +4,7 @@ const beam = require('./utils/beam_utils.js');
 const Web3 = require('web3');
 const RLP = require('rlp');
 const keccak256 = require('keccak256');
+const keccak512 = require('js-sha3').keccak512;
 const Net = require('net');
 
 let web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8543'));
@@ -22,25 +23,39 @@ async function waitTx(txId) {
     } while(true)
 }
 
+const changeEndianness = (string) => {
+    string = string.replace(/^0x/i, '');
+    const result = [];
+    let len = string.length - 2;
+    while (len >= 0) {
+      result.push(string.substr(len, 2));
+      len -= 2;
+    }
+    return result.join('');
+}
+
 function generateSeed(block) {
     let ls = [];
-
-    ls.push(Buffer.from(block.parentHash, 'hex'));
-    ls.push(Buffer.from(block.sha3Uncles, 'hex'));
-    ls.push(Buffer.from(block.miner, 'hex'));
-    ls.push(Buffer.from(block.stateRoot, 'hex'));
-    ls.push(Buffer.from(block.transactionsRoot, 'hex'));
-    ls.push(Buffer.from(block.receiptsRoot, 'hex'));
-    ls.push(Buffer.from(block.logsBloom, 'hex'));
-    ls.push(0 + block.totalDifficulty);
-    ls.push(block.number);
-    ls.push(block.gasLimit);
-    ls.push(block.gasUsed);
-    ls.push(block.timestamp);
-    ls.push(Buffer.from(block.extraData, 'hex'));
+    
+    ls.push(block.parentHash);
+    ls.push(block.sha3Uncles);
+    ls.push(block.miner);
+    ls.push(block.stateRoot);
+    ls.push(block.transactionsRoot);
+    ls.push(block.receiptsRoot);
+    ls.push(block.logsBloom);
+    ls.push(web3.utils.toHex(0 + block.difficulty));
+    ls.push(web3.utils.toHex(block.number));
+    ls.push(web3.utils.toHex(block.gasLimit));
+    ls.push(web3.utils.toHex(block.gasUsed));
+    ls.push(web3.utils.toHex(block.timestamp));
+    ls.push(block.extraData);
 
     let encoded = RLP.encode(ls);
-    return keccak256(encoded).toString('hex');
+    let prePoWBlockHash = keccak256(encoded).toString('hex');
+    let tmp = prePoWBlockHash + changeEndianness(block.nonce);
+    
+    return keccak512(Buffer.from(tmp, 'hex'));
 }
 
 function requestProof(number, seed) {
@@ -86,7 +101,6 @@ function requestProof(number, seed) {
     //console.log(result);
 
     let blockHeight = await web3.eth.getBlockNumber();
-
     console.log('block height = ', blockHeight);
 
     let block = await web3.eth.getBlock(blockHeight);
