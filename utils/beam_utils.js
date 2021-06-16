@@ -42,7 +42,7 @@ function baseFunction(args, processResult) {
                     id: 123,
                     method: 'invoke_contract',
                     params: {
-                        "contract_file": 'shaders/bridge/app.wasm',
+                        "contract_file": process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
                         "args": args
                     }
                 }) + '\n');

@@ -7,7 +7,7 @@ const keccak256 = require('keccak256');
 const keccak512 = require('js-sha3').keccak512;
 const Net = require('net');
 
-let web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8543'));
+let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
 
 async function waitTx(txId) {
     const sleep = (milliseconds) => {
@@ -19,7 +19,7 @@ async function waitTx(txId) {
         let status = result['result']['status'];
 
         if (status == 3 || status == 4) break;
-        await sleep(60000);
+        await sleep(15000);
     } while(true)
 }
 
@@ -63,7 +63,7 @@ function requestProof(number, seed) {
         let client = new Net.Socket();
         let acc = '';
         
-        client.connect(30000, '127.0.0.1', () => {
+        client.connect(process.env.ETHASH_SERVICE_PORT, process.env.ETHASH_SERVICE_HOST, () => {
             client.write(JSON.stringify(
                 {
                     jsonrpc: '2.0',
@@ -95,10 +95,9 @@ function requestProof(number, seed) {
 };
 
 (async () => {
-    let promise = beam.readPk();
-    let result = await promise;
+    let pubkey = await beam.readPk();
     
-    //console.log(result);
+    //console.log(pubkey);
 
     let blockHeight = await web3.eth.getBlockNumber();
     console.log('block height = ', blockHeight);
@@ -110,29 +109,22 @@ function requestProof(number, seed) {
     //let seed = generateSeed(block);
 
     let epoch = Math.floor(block.number / 30000);
-
-    promise = beam.genearateSeed(block);
-    let seed = await promise;
-
-    promise = requestProof(epoch, seed);
-    let [proof, datasetCount] = await promise;
+    let seed = await beam.genearateSeed(block);
+    let [proof, datasetCount] = await requestProof(epoch, seed);
 
     console.log('epoch = ', epoch);
     console.log('seed = ', seed);
     //console.log('proof = ', proof);
 
-    console.log('import message')
-    promise = beam.importMsg(4000000, result, block, proof, datasetCount);
-    result = await promise;
-    await waitTx(result);
+    console.log('import message');
+    let importMsgTxID = await beam.importMsg(4000000, pubkey, block, proof, datasetCount);
+    await waitTx(importMsgTxID);
 
-    console.log('finalize message')
-    promise = beam.finalizeMsg();
-    result = await promise;
-    await waitTx(result);
+    console.log('finalize message');
+    let finalizeMsgTxID = await beam.finalizeMsg();
+    await waitTx(finalizeMsgTxID);
 
-    console.log('mint coin')
-    promise = beam.unlock();
-    result = await promise;
-    await waitTx(result);
+    console.log('mint coin');
+    let unlockTxID = await beam.unlock();
+    await waitTx(unlockTxID);
 })();
