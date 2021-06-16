@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const beam = require('./utils/beam_utils.js');
 const Web3 = require('web3');
+const BN = Web3.utils.BN;
 const RLP = require('rlp');
 const keccak256 = require('keccak256');
 const keccak512 = require('js-sha3').keccak512;
@@ -35,23 +36,22 @@ const changeEndianness = (string) => {
 }
 
 function generateSeed(block) {
-    let ls = [];
-    
-    ls.push(block.parentHash);
-    ls.push(block.sha3Uncles);
-    ls.push(block.miner);
-    ls.push(block.stateRoot);
-    ls.push(block.transactionsRoot);
-    ls.push(block.receiptsRoot);
-    ls.push(block.logsBloom);
-    ls.push(web3.utils.toHex(0 + block.difficulty));
-    ls.push(web3.utils.toHex(block.number));
-    ls.push(web3.utils.toHex(block.gasLimit));
-    ls.push(web3.utils.toHex(block.gasUsed));
-    ls.push(web3.utils.toHex(block.timestamp));
-    ls.push(block.extraData);
-
-    let encoded = RLP.encode(ls);
+    // look at https://github.com/pantos-io/ethrelay/blob/master/utils/utils.js
+    let encoded = RLP.encode([
+        block.parentHash,
+        block.sha3Uncles,
+        block.miner,
+        block.stateRoot,
+        block.transactionsRoot,
+        block.receiptsRoot,
+        block.logsBloom,
+        new BN(block.difficulty),
+        new BN(block.number),
+        block.gasLimit,
+        block.gasUsed,
+        block.timestamp,
+        block.extraData
+    ]);
     let prePoWBlockHash = keccak256(encoded).toString('hex');
     let tmp = prePoWBlockHash + changeEndianness(block.nonce);
     
@@ -106,14 +106,15 @@ function requestProof(number, seed) {
 
     console.log('block = ', block);
 
-    //let seed = generateSeed(block);
+    let seed = generateSeed(block);
 
     let epoch = Math.floor(block.number / 30000);
-    let seed = await beam.genearateSeed(block);
+    //let seed2 = await beam.genearateSeed(block);
     let [proof, datasetCount] = await requestProof(epoch, seed);
 
     console.log('epoch = ', epoch);
     console.log('seed = ', seed);
+    //console.log('seed2 = ', seed2);
     //console.log('proof = ', proof);
 
     console.log('import message');
