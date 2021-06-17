@@ -75,7 +75,7 @@ exports.readPk = () => {
     );
 };
 
-exports.importMsg = (amount, pubkey, block, proof, datasetCount) => {
+exports.importMsg = (amount, pubkey, block, proof, datasetCount, txIndex, receiptProof) => {
     let args = 'role=manager,action=importMsg,cid=' + process.env.CID;
     args += ',amount=' + amount + ',pubkey=' + pubkey;
     args += ',parentHash=' + block.parentHash.substring(2);
@@ -94,6 +94,8 @@ exports.importMsg = (amount, pubkey, block, proof, datasetCount) => {
     args += ',nonce=' + BigInt(block.nonce).toString();
     args += ',proof=' + proof;
     args += ',datasetCount=' + datasetCount;
+    args += ',txIndex=' + txIndex;
+    args += ',receiptProof=' + receiptProof;
 
     return baseFunction(args, (data) => {
         let res = JSON.parse(data);

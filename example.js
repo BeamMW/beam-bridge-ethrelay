@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const beam = require('./utils/beam_utils.js');
 const ethash_utils = require('./utils/ethash_utils.js');
+const eth_utils = require('./utils/eth_utils.js');
 const Web3 = require('web3');
 
 let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
@@ -22,10 +23,14 @@ async function waitTx(txId) {
 
 (async () => {
     let pubkey = await beam.readPk();
+    let receipt = await eth_utils.lockToken(100);
     
     //console.log(pubkey);
+    let resp = await eth_utils.getReceiptProof(receipt['transactionHash'], receipt['blockHash']);
 
-    let blockHeight = await web3.eth.getBlockNumber();
+    console.log('receipt proof: ', resp);
+
+    let blockHeight = receipt['blockNumber']; //await web3.eth.getBlockNumber();
     console.log('block height = ', blockHeight);
 
     let block = await web3.eth.getBlock(blockHeight);
@@ -44,7 +49,15 @@ async function waitTx(txId) {
     //console.log('proof = ', proof);
 
     console.log('import message');
-    let importMsgTxID = await beam.importMsg(4000000, pubkey, block, proof, datasetCount);
+    let importMsgTxID = await beam.importMsg(
+        4000000, 
+        pubkey,
+        block, 
+        proof, 
+        datasetCount, 
+        receipt['transactionIndex'],
+        resp.receiptProof.hex);
+
     await waitTx(importMsgTxID);
 
     console.log('finalize message');
