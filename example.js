@@ -56,7 +56,7 @@ async function waitTx(txId) {
         proof, 
         datasetCount, 
         receipt['transactionIndex'],
-        resp.receiptProof.hex);
+        resp.receiptProof.hex.substring(2));
 
     await waitTx(importMsgTxID);
 
