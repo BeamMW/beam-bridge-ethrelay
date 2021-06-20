@@ -23,9 +23,10 @@ async function waitTx(txId) {
 
 (async () => {
     let pubkey = await beam.readPk();
-    let receipt = await eth_utils.lockToken(100);
+    let pubkey_ = web3.utils.asciiToHex(pubkey);
+    let receipt = await eth_utils.lockToken(100, pubkey_);
     
-    //console.log(pubkey);
+    console.log(pubkey);
     let resp = await eth_utils.getReceiptProof(receipt['transactionHash'], receipt['blockHash']);
 
     console.log('receipt proof: ', resp);

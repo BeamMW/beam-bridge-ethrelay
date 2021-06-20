@@ -36,11 +36,11 @@ exports.sendMessages = (messages) => {
     console.log(res);
 }
 
-exports.lockToken = async (value) => {
+exports.lockToken = async (value, pubkey) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
     console.log('sender: ', process.env.TOKEN_SENDER)
     const approveTx = tokenContract.methods.approve(process.env.DUMMY_USER, value);
-    const lockTx = dummyContract.methods.lock(value);
+    const lockTx = dummyContract.methods.lock(value, pubkey);
 
     await requestToContract(
         process.env.TOKEN_SENDER, 
