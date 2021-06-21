@@ -4,6 +4,7 @@ const beam = require('./utils/beam_utils.js');
 const ethash_utils = require('./utils/ethash_utils.js');
 const eth_utils = require('./utils/eth_utils.js');
 const Web3 = require('web3');
+const RLP = require('rlp');
 
 let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
 
@@ -41,22 +42,19 @@ async function waitTx(txId) {
     let seed = ethash_utils.generateSeed(block);
 
     let epoch = Math.floor(block.number / 30000);
-    //let seed2 = await beam.genearateSeed(block);
     let [proof, datasetCount] = await ethash_utils.requestProof(epoch, seed);
 
     console.log('epoch = ', epoch);
     console.log('seed = ', seed);
-    //console.log('seed2 = ', seed2);
-    //console.log('proof = ', proof);
-
     console.log('import message');
+
     let importMsgTxID = await beam.importMsg(
         4000000, 
         pubkey,
         block, 
         proof, 
         datasetCount, 
-        receipt['transactionIndex'],
+        RLP.encode(parseInt(resp.txIndex)).toString('hex'),
         resp.receiptProof.hex.substring(2));
 
     await waitTx(importMsgTxID);
