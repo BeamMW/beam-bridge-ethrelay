@@ -1,4 +1,5 @@
 const Net = require('net');
+const http = require('http');
 
 exports.readMessages = () => {
     return new Promise((resolve, reject) => {
@@ -32,35 +33,40 @@ exports.readMessages = () => {
 
 function baseFunction(args, processResult) {
     return new Promise((resolve, reject) => {
-        let client = new Net.Socket();
         let accumulated = '';
-        
-        client.connect(process.env.BEAM_PORT, process.env.BEAM_HOST, () => {
-            client.write(JSON.stringify(
-                {
-                    jsonrpc: '2.0',
-                    id: 123,
-                    method: 'invoke_contract',
-                    params: {
-                        "contract_file": process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
-                        "args": args
-                    }
-                }) + '\n');
-        });
+        let options = {
+            host: process.env.BEAM_HOST,
+            path: process.env.HTPP_API_PATH,
+            port: process.env.BEAM_PORT,
+            method: 'POST'
+        };
 
-        client.on('data', function(data) {
-            accumulated += data;
-            if (data.indexOf('\n') != -1) {
+        let callback = (response) => {
+            response.on('data', (chunk) => {
+                accumulated += chunk;
+            });
+
+            response.on('end', () => {
                 resolve(processResult(accumulated));
-                client.destroy();
-            }
-        });
+            });
 
-        client.on('close', function() {
-            //console.log('Connection closed');
-        });
+            response.on('error', reject);
+        }
 
-        client.on('error', reject);
+        let request = http.request(options, callback);
+
+        request.write(JSON.stringify(
+            {
+                jsonrpc: '2.0',
+                id: 123,
+                method: 'invoke_contract',
+                params: {
+                    "contract_file": process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
+                    "args": args
+                }
+            }) + '\n');
+
+        request.end();
     });
 }
 
@@ -149,31 +155,39 @@ exports.unlock = () => {
 
 exports.getStatusTx = (txId) => {
     return new Promise((resolve, reject) => {
-        let client = new Net.Socket();
-        
-        client.connect(process.env.BEAM_PORT, process.env.BEAM_HOST, () => {
-            client.write(JSON.stringify(
-                {
-                    jsonrpc: '2.0',
-                    id: 123,
-                    method: 'tx_status',
-                    params: {
-                        "txId": txId
-                    }
-                }) + '\n');
-        });
+        let accumulated = '';
+        let options = {
+            host: process.env.BEAM_HOST,
+            path: process.env.HTPP_API_PATH,
+            port: process.env.BEAM_PORT,
+            method: 'POST'
+        };
 
-        client.on('data', function(data) {
-            let res = JSON.parse(data);
-            //console.log(res);
-            resolve(res);
-            client.destroy();
-        });
+        let callback = (response) => {
+            response.on('data', (chunk) => {
+                accumulated += chunk;
+            });
 
-        client.on('close', function() {
-            //console.log('Connection closed');
-        });
+            response.on('end', () => {
+                let res = JSON.parse(accumulated);
+                resolve(res);
+            });
 
-        client.on('error', reject);
+            response.on('error', reject);
+        }
+
+        let request = http.request(options, callback);
+
+        request.write(JSON.stringify(
+            {
+                jsonrpc: '2.0',
+                id: 123,
+                method: 'tx_status',
+                params: {
+                    "txId": txId
+                }
+            }) + '\n');
+
+        request.end();
     });
 };

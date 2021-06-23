@@ -23,14 +23,16 @@ async function waitTx(txId) {
 }
 
 (async () => {
+    const amount = 7000000;
     let pubkey = await beam.readPk();
     let pubkey_ = web3.utils.asciiToHex(pubkey);
-    let receipt = await eth_utils.lockToken(100, pubkey_);
+    let receipt = await eth_utils.lockToken(amount, pubkey_);
     
     console.log(pubkey);
     let resp = await eth_utils.getReceiptProof(receipt['transactionHash'], receipt['blockHash']);
 
-    console.log('receipt proof: ', resp);
+    //console.log('receipt proof: ', resp);
+    console.log("ReceiptProof: ", resp.receiptProof.hex);
 
     let blockHeight = receipt['blockNumber']; //await web3.eth.getBlockNumber();
     console.log('block height = ', blockHeight);
@@ -49,7 +51,7 @@ async function waitTx(txId) {
     console.log('import message');
 
     let importMsgTxID = await beam.importMsg(
-        4000000, 
+        amount,
         pubkey,
         block, 
         proof, 

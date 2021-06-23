@@ -68,7 +68,7 @@ exports.requestProof = (number, seed) => {
         });
 
         client.on('close', function() {
-            console.log('Connection closed');
+            //console.log('Connection closed');
         });
 
         client.on('error', reject);
