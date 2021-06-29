@@ -16,7 +16,7 @@ const changeEndianness = (string) => {
     return result.join('');
 }
 
-exports.generateSeed = (block) => {
+function generatePOWSeed(block) {
     // look at https://github.com/pantos-io/ethrelay/blob/master/utils/utils.js
     let encoded = RLP.encode([
         block.parentHash,
@@ -39,7 +39,7 @@ exports.generateSeed = (block) => {
     return keccak512(Buffer.from(tmp, 'hex'));
 }
 
-exports.requestProof = (number, seed) => {
+async function requestPOWProof (number, seed) {
     return new Promise((resolve, reject) => {
         let client = new Net.Socket();
         let acc = '';
@@ -73,4 +73,12 @@ exports.requestProof = (number, seed) => {
 
         client.on('error', reject);
     });
+}
+
+exports.GetPOWProof = async (block) => {
+    let seed = generatePOWSeed(block);
+    let epoch = Math.floor(block.number / 30000);
+    let [proof, datasetCount] = await requestPOWProof(epoch, seed);
+
+    return [proof, datasetCount];
 }

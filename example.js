@@ -6,7 +6,14 @@ const eth_utils = require('./utils/eth_utils.js');
 const Web3 = require('web3');
 const RLP = require('rlp');
 
-let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
+const PipeUserContract = require('./utils/DummyUser.json');
+
+let web3 = new Web3(new Web3.providers.WebsocketProvider(process.env.ETH_WEBSOCKET_PROVIDER));
+
+const pipeUserContract = new web3.eth.Contract(
+    PipeUserContract.abi,
+    process.env.DUMMY_USER
+);
 
 async function waitTx(txId) {
     const sleep = (milliseconds) => {
@@ -22,42 +29,26 @@ async function waitTx(txId) {
     } while(true)
 }
 
-(async () => {
-    const amount = 7000000;
-    let pubkey = await beam.readPk();
-    let pubkey_ = '0x' + pubkey;
-    let receipt = await eth_utils.lockToken(amount, pubkey_);
+async function processEvent(event) {
+    let txHash = event["transactionHash"];
+    let blockHash = event["blockHash"];
 
-    console.log(pubkey);
-    let resp = await eth_utils.getReceiptProof(receipt['transactionHash'], receipt['blockHash']);
+    let receiptProofData = await eth_utils.getReceiptProof(txHash, blockHash);
+    console.log("ReceiptProof: ", receiptProofData.receiptProof.hex);
 
-    //console.log('receipt proof: ', resp);
-    console.log("ReceiptProof: ", resp.receiptProof.hex);
-
-    let blockHeight = receipt['blockNumber']; //await web3.eth.getBlockNumber();
-    console.log('block height = ', blockHeight);
-
-    let block = await web3.eth.getBlock(blockHeight);
-
+    let block = await web3.eth.getBlock(event['blockNumber']);
     console.log('block = ', block);
 
-    let seed = ethash_utils.generateSeed(block);
-
-    let epoch = Math.floor(block.number / 30000);
-    let [proof, datasetCount] = await ethash_utils.requestProof(epoch, seed);
-
-    console.log('epoch = ', epoch);
-    console.log('seed = ', seed);
-    console.log('import message');
+    let [powProof, powDatasetCount] = await ethash_utils.GetPOWProof(block);
 
     let importMsgTxID = await beam.importMsg(
-        amount,
-        pubkey,
+        event["returnValues"]["value"],
+        event["returnValues"]["pubKey"],
         block, 
-        proof, 
-        datasetCount, 
-        RLP.encode(parseInt(resp.txIndex)).toString('hex'),
-        resp.receiptProof.hex.substring(2));
+        powProof, 
+        powDatasetCount, 
+        RLP.encode(parseInt(receiptProofData.txIndex)).toString('hex'),
+        receiptProofData.receiptProof.hex.substring(2));
 
     await waitTx(importMsgTxID);
 
@@ -68,4 +59,27 @@ async function waitTx(txId) {
     console.log('mint coin');
     let unlockTxID = await beam.unlock();
     await waitTx(unlockTxID);
-})();
+}
+
+// subscribe to lockEvent
+pipeUserContract.events.lockEvent({
+    fromBlock: 10700
+}, function(error, event) { console.log(event); })
+.on("connected", function(subscriptionId) {
+    console.log(subscriptionId);
+})
+.on('data', function(event) {
+    console.log("New event: ", event);
+    // TODO: wait enough confirmations?
+    processEvent(event);
+})
+.on('changed', function(event) {
+    // remove event from local database
+    console.log("event changed!");
+})
+.on('error', function(error, receipt) { // If the transaction was rejected by the network with a receipt, the second parameter will be the receipt.
+    console.log("Error: ", error);
+    if (receipt) {
+        console.log("receipt: ", receipt);
+    }
+});

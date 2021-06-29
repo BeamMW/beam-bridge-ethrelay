@@ -81,6 +81,7 @@ exports.readPk = () => {
     );
 };
 
+// TODO: use msg(event) as arg instead of amount, pubkey..
 exports.importMsg = (amount, pubkey, block, proof, datasetCount, txIndex, receiptProof) => {
     let args = 'role=manager,action=importMsg,cid=' + process.env.CID;
     args += ',amount=' + amount + ',pubkey=' + pubkey;
