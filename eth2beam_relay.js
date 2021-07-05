@@ -42,7 +42,7 @@ async function processEvent(event) {
     let [powProof, powDatasetCount] = await ethash_utils.GetPOWProof(block);
 
     let importMsgTxID = await beam.bridgePushRemote(
-        event["returnValues"]["pckgId"],
+        event["returnValues"]["msgId"],
         event["returnValues"]["msgContractReceiver"],
         event["returnValues"]["msgContractSender"],
         event["returnValues"]["msgBody"],

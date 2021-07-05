@@ -193,9 +193,9 @@ exports.getStatusTx = (txId) => {
     });
 };
 
-exports.bridgePushRemote = (pckgId, contractReceiver, contractSender, msgBody, block, powProof, datasetCount, txIndex, receiptProof) => {
+exports.bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, block, powProof, datasetCount, txIndex, receiptProof) => {
     let args = 'role=manager,action=pushRemote,cid=' + process.env.CID;
-    args += ',pckgId=' + pckgId;
+    args += ',msgId=' + msgId;
     args += ',contractReceiver=' + contractReceiver.substring(2);
     args += ',contractSender=' + contractSender.substring(2);
     args += ',msgBody=' + msgBody;
