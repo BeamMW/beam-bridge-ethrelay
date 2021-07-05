@@ -59,11 +59,12 @@ async function processEvent(event) {
     console.log('mint coin');
     let unlockTxID = await beam.unlock();
     await waitTx(unlockTxID);
+    console.log('finished');
 }
 
 // subscribe to lockEvent
 pipeUserContract.events.lockEvent({
-    fromBlock: 10700
+    //fromBlock: 45345
 }, function(error, event) { console.log(event); })
 .on("connected", function(subscriptionId) {
     console.log(subscriptionId);
