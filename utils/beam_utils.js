@@ -192,3 +192,37 @@ exports.getStatusTx = (txId) => {
         request.end();
     });
 };
+
+exports.bridgePushRemote = (pckgId, contractReceiver, contractSender, msgBody, block, powProof, datasetCount, txIndex, receiptProof) => {
+    let args = 'role=manager,action=pushRemote,cid=' + process.env.CID;
+    args += ',pckgId=' + pckgId;
+    args += ',contractReceiver=' + contractReceiver.substring(2);
+    args += ',contractSender=' + contractSender.substring(2);
+    args += ',msgBody=' + msgBody;
+    // eth header
+    args += ',parentHash=' + block.parentHash.substring(2);
+    args += ',uncleHash=' + block.sha3Uncles.substring(2);
+    args += ',coinbase=' + block.miner.substring(2);
+    args += ',root=' + block.stateRoot.substring(2);
+    args += ',txHash=' + block.transactionsRoot.substring(2);
+    args += ',receiptHash=' + block.receiptsRoot.substring(2);
+    args += ',bloom=' + block.logsBloom.substring(2);
+    args += ',extra=' + block.extraData.substring(2);
+    args += ',difficulty=' + block.difficulty;
+    args += ',number=' + block.number;
+    args += ',gasLimit=' + block.gasLimit;
+    args += ',gasUsed=' + block.gasUsed;
+    args += ',time=' + block.timestamp;
+    args += ',nonce=' + BigInt(block.nonce).toString();
+    // POWProof
+    args += ',powProof=' + powProof;
+    args += ',datasetCount=' + datasetCount;
+    // ReceiptProof
+    args += ',txIndex=' + txIndex;
+    args += ',receiptProof=' + receiptProof;
+
+    return baseFunction(args, (data) => {
+        let res = JSON.parse(data);
+        return res['result']['txid'];
+    });
+};
