@@ -12,7 +12,7 @@ let web3 = new Web3(new Web3.providers.WebsocketProvider(process.env.ETH_WEBSOCK
 
 const pipeContract = new web3.eth.Contract(
     PipeContract.abi,
-    process.env.DUMMY_USER
+    process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
 async function waitTx(txId) {
