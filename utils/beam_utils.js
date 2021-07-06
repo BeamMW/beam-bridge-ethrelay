@@ -237,7 +237,7 @@ exports.bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, bl
 exports.getUserPubkey = () => {
     return baseFunction(
         process.env.BEAM_SHADERS_PATH + '/mirrortoken/app.wasm',
-        'role=user,action=view_addr',
+        'role=user,action=view_addr, cid=' + process.env.BEAM_PIPE_USER_CID,
         (data) => {
             let res = JSON.parse(data);
             let output = JSON.parse(res['result']['output']);
