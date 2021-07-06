@@ -31,7 +31,7 @@ exports.readMessages = () => {
     });
 };
 
-function baseFunction(args, processResult) {
+function baseFunction(contractFile, args, processResult) {
     return new Promise((resolve, reject) => {
         let accumulated = '';
         let options = {
@@ -61,7 +61,7 @@ function baseFunction(args, processResult) {
                 id: 123,
                 method: 'invoke_contract',
                 params: {
-                    "contract_file": process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
+                    "contract_file": contractFile,
                     "args": args
                 }
             }) + '\n');
@@ -72,6 +72,7 @@ function baseFunction(args, processResult) {
 
 exports.readPk = () => {
     return baseFunction(
+        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
         'role=manager,action=generatePK,cid=' + process.env.CID,
         (data) => {
             let res = JSON.parse(data);
@@ -104,7 +105,8 @@ exports.importMsg = (amount, pubkey, block, proof, datasetCount, txIndex, receip
     args += ',txIndex=' + txIndex;
     args += ',receiptProof=' + receiptProof;
 
-    return baseFunction(args, (data) => {
+    let contractFile = process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm';
+    return baseFunction(contractFile, args, (data) => {
         let res = JSON.parse(data);
         return res['result']['txid'];
     });
@@ -127,7 +129,9 @@ exports.genearateSeed = (block) => {
     args += ',time=' + block.timestamp;
     args += ',nonce=' + BigInt(block.nonce).toString();
     
-    return baseFunction(args, (data) => {
+    let contractFile = process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm';
+
+    return baseFunction(contractFile, args, (data) => {
         let res = JSON.parse(data);
         let output = JSON.parse(res['result']['output']);
         return output['seed'];
@@ -136,6 +140,7 @@ exports.genearateSeed = (block) => {
 
 exports.finalizeMsg = () => {
     return baseFunction(
+        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
         'role=manager,action=finalizeMsg,cid=' + process.env.CID,
         (data) => {
             let res = JSON.parse(data);
@@ -146,6 +151,7 @@ exports.finalizeMsg = () => {
 
 exports.unlock = () => {
     return baseFunction(
+        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
         'role=manager,action=unlock,cid=' + process.env.CID,
         (data) => {
             let res = JSON.parse(data);
@@ -221,8 +227,21 @@ exports.bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, bl
     args += ',txIndex=' + txIndex;
     args += ',receiptProof=' + receiptProof;
 
-    return baseFunction(args, (data) => {
+    let contractFile = process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm';
+    return baseFunction(contractFile, args, (data) => {
         let res = JSON.parse(data);
         return res['result']['txid'];
     });
+};
+
+exports.getUserPubkey = () => {
+    return baseFunction(
+        process.env.BEAM_SHADERS_PATH + '/mirrortoken/app.wasm',
+        'role=user,action=view_addr',
+        (data) => {
+            let res = JSON.parse(data);
+            let output = JSON.parse(res['result']['output']);
+            return output['addr'];
+        }
+    );
 };
