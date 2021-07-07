@@ -34,7 +34,7 @@ lockToken = async (value, pubkey) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
     console.log('sender: ', process.env.TOKEN_SENDER)
     const approveTx = tokenContract.methods.approve(process.env.ETH_PIPE_USER_CONTRACT_ADDRESS, value);
-    const lockTx = pipeUserContract.methods.lock(value, pubkey);
+    const lockTx = pipeUserContract.methods.sendFunds(value, pubkey);
 
     await requestToContract(
         process.env.TOKEN_SENDER, 
@@ -52,7 +52,7 @@ lockToken = async (value, pubkey) => {
 }
 
 (async () => {
-    console.log("Calling 'Lock' of PipeUser contract:");
+    console.log("Calling 'sendFunds' of PipeUser contract:");
     const amount = 7000000;
     
     // get receiver's pubkey from Beam chain
@@ -64,5 +64,5 @@ lockToken = async (value, pubkey) => {
 
     console.log("recipient's pubkey: ", pubkey);
     console.log("TX receipt: ", receipt);
-    console.log("'Lock' is finished.")
+    console.log("'sendFunds' is finished.")
 })();
