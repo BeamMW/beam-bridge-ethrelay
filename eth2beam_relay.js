@@ -30,9 +30,10 @@ async function waitTx(txId) {
 }
 
 async function processEvent(event) {
+    console.log("Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
+
     let txHash = event["transactionHash"];
     let blockHash = event["blockHash"];
-
     let receiptProofData = await eth_utils.getReceiptProof(txHash, blockHash);
     console.log("ReceiptProof: ", receiptProofData.receiptProof.hex);
 
@@ -41,7 +42,7 @@ async function processEvent(event) {
 
     let [powProof, powDatasetCount] = await ethash_utils.GetPOWProof(block);
 
-    let importMsgTxID = await beam.bridgePushRemote(
+    let pushRemoteTxID = await beam.bridgePushRemote(
         event["returnValues"]["msgId"],
         event["returnValues"]["msgContractReceiver"],
         event["returnValues"]["msgContractSender"],
@@ -52,15 +53,8 @@ async function processEvent(event) {
         RLP.encode(parseInt(receiptProofData.txIndex)).toString('hex'),
         receiptProofData.receiptProof.hex.substring(2));
 
-    await waitTx(importMsgTxID);
-
-    console.log('finalize message');
-    let finalizeMsgTxID = await beam.finalizeMsg();
-    await waitTx(finalizeMsgTxID);
-
-    console.log('mint coin');
-    let unlockTxID = await beam.unlock();
-    await waitTx(unlockTxID);
+    await waitTx(pushRemoteTxID);
+    console.log("The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
 }
 
 // subscribe to Pipe.NewLocalMessage

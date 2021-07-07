@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const beam = require('./utils/beam_utils.js');
+const eth_utils = require('./utils/eth_utils.js');
 const Web3 = require('web3');
 const BeamTokenContract = require('./utils/BeamToken.json');
 const PipeUserContract = require('./utils/PipeUser.json');
@@ -15,33 +16,18 @@ const pipeUserContract = new web3.eth.Contract(
     process.env.ETH_PIPE_USER_CONTRACT_ADDRESS
 );
 
-const requestToContract = async (sender, receiver, privateKey, abi) => {
-    let nonce = await web3.eth.getTransactionCount(sender);
-    let signedTx = await web3.eth.accounts.signTransaction({
-        from: sender,
-        to: receiver,
-        data: abi,
-        gas: 2000000,
-        nonce: nonce,
-    }, privateKey);
-    let createReceipt = await web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-
-    //console.log('createReceipt: ', createReceipt);
-    return createReceipt;
-}
-
 lockToken = async (value, pubkey) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
     console.log('sender: ', process.env.TOKEN_SENDER)
     const approveTx = tokenContract.methods.approve(process.env.ETH_PIPE_USER_CONTRACT_ADDRESS, value);
     const lockTx = pipeUserContract.methods.sendFunds(value, pubkey);
 
-    await requestToContract(
+    await eth_utils.requestToContract(
         process.env.TOKEN_SENDER, 
         process.env.TOKEN_CONTRACT, 
         process.env.SENDER_PRIVATE_KEY, 
         approveTx.encodeABI());
-    let lockTxReceipt = await requestToContract(
+    let lockTxReceipt = await eth_utils.requestToContract(
         process.env.TOKEN_SENDER, 
         process.env.ETH_PIPE_USER_CONTRACT_ADDRESS,
         process.env.SENDER_PRIVATE_KEY, 

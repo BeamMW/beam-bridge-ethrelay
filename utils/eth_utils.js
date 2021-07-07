@@ -14,7 +14,7 @@ const dummyContract = new web3.eth.Contract(
     process.env.DUMMY_USER
 );
 
-const requestToContract = async (sender, receiver, privateKey, abi) => {
+exports.requestToContract = async (sender, receiver, privateKey, abi) => {
     let nonce = await web3.eth.getTransactionCount(sender);
     let signedTx = await web3.eth.accounts.signTransaction({
         from: sender,
