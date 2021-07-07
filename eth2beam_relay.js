@@ -15,20 +15,6 @@ const pipeContract = new web3.eth.Contract(
     process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
-async function waitTx(txId) {
-    const sleep = (milliseconds) => {
-        return new Promise(resolve => setTimeout(resolve, milliseconds))
-    }
-    do {
-        let promise = beam.getStatusTx(txId);
-        let result = await promise;
-        let status = result['result']['status'];
-
-        if (status == 3 || status == 4) break;
-        await sleep(15000);
-    } while(true)
-}
-
 async function processEvent(event) {
     console.log("Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
 
@@ -53,7 +39,7 @@ async function processEvent(event) {
         RLP.encode(parseInt(receiptProofData.txIndex)).toString('hex'),
         receiptProofData.receiptProof.hex.substring(2));
 
-    await waitTx(pushRemoteTxID);
+    await beam.waitTx(pushRemoteTxID);
     console.log("The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
 }
 

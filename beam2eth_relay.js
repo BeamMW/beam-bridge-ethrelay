@@ -4,11 +4,12 @@ const beam = require('./utils/beam_utils.js');
 const eth = require('./utils/eth_utils.js');
 
 (async () => {
-    let promise = beam.readMessages();
-    let result = await promise;
+    let result = await beam.getUserPubkey();
+    console.log('pub key: ', result);
 
-    console.log('after request');
+    result = await beam.getLocalMsgCount();
+    console.log('count = ', result);
 
-    await eth.sendMessages(result);
-    console.log('after sync');
+    result = await beam.getLocalMsg(1);
+    console.log('msg: ', result);
 })();

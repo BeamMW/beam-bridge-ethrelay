@@ -237,11 +237,55 @@ exports.bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, bl
 exports.getUserPubkey = () => {
     return baseFunction(
         process.env.BEAM_SHADERS_PATH + '/mirrortoken/app.wasm',
-        'role=user,action=get_pk, cid=' + process.env.BEAM_PIPE_USER_CID,
+        'role=user,action=get_pk,cid=' + process.env.BEAM_PIPE_USER_CID,
         (data) => {
             let res = JSON.parse(data);
             let output = JSON.parse(res['result']['output']);
             return output['pk'];
+        }
+    );
+};
+
+exports.waitTx = async (txId) => {
+    const sleep = (milliseconds) => {
+        return new Promise(resolve => setTimeout(resolve, milliseconds))
+    }
+    do {
+        let result = await getStatusTx(txId);
+        let status = result['result']['status'];
+
+        if (status == 3 || status == 4) break;
+        await sleep(15000);
+    } while(true)
+}
+
+exports.getLocalMsgCount = () => {
+    let args = 'role=manager,action=getLocalMsgCount,cid=' + process.env.BEAM_BRIDGE_CID;
+    return baseFunction(
+        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
+        args,
+        (data) => {
+            let res = JSON.parse(data);
+            let output = JSON.parse(res['result']['output']);
+            return output['count'];
+        }
+    );
+};
+
+exports.getLocalMsg = (msgId) => {
+    let args = 'role=manager,action=getLocalMsg,cid=' + process.env.BEAM_BRIDGE_CID;
+    args += ',msgId=' + msgId;
+    return baseFunction(
+        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
+        args,
+        (data) => {
+            let res = JSON.parse(data);
+            let output = JSON.parse(res['result']['output']);
+            return {
+                'sender': output['sender'],
+                'receiver': output['receiver'],
+                'body': output['body']
+            };
         }
     );
 };
