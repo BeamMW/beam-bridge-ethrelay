@@ -94,10 +94,31 @@ const pushRemoteMessage = async (msgId, msgContractSender, msgContractReceiver, 
         pushRemote.encodeABI());
 }
 
+const validateRemoteMessage = async (msgId, proof, blockDetails) => {
+    const func = pipeContract.methods.validateRemoteMessage(
+        msgId, 
+        '0x' + blockDetails['previous_block'],
+        '0x' + blockDetails['chainwork'],
+        '0x' + blockDetails['kernels'],
+        '0x' + blockDetails['definition'],
+        blockDetails['height'],
+        blockDetails['timestamp'],
+        '0x' + blockDetails['pow'],
+        '0x' + blockDetails['rules_hash'],
+        '0x' + proof);
+
+    await requestToContract(
+        process.env.TOKEN_SENDER, 
+        process.env.ETH_PIPE_CONTRACT_ADDRESS, 
+        process.env.SENDER_PRIVATE_KEY, 
+        func.encodeABI());
+}
+
 module.exports = {
     requestToContract,
     sendMessages,
     lockToken,
     getReceiptProof,
-    pushRemoteMessage
+    pushRemoteMessage,
+    validateRemoteMessage
 }

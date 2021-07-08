@@ -19,4 +19,6 @@ const eth = require('./utils/eth_utils.js');
 
     let blockDetails = await beam.getBlockDetails(result['height']);
     console.log('block details: ', blockDetails);
+
+    await eth.validateRemoteMessage(count, result['proof'], blockDetails);
 })();

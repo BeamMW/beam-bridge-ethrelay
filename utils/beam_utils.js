@@ -156,7 +156,7 @@ const getBlockDetails = (height) => {
             height: height
         },
         (data) => {
-            return JSON.parse(data);
+            return JSON.parse(data)['result'];
         }
     )
 }
