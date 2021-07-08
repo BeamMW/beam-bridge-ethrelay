@@ -204,7 +204,7 @@ exports.bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, bl
     args += ',msgId=' + msgId;
     args += ',contractReceiver=' + contractReceiver.substring(2);
     args += ',contractSender=' + contractSender.substring(2);
-    args += ',msgBody=' + msgBody;
+    args += ',msgBody=' + msgBody.substring(2);
     // eth header
     args += ',parentHash=' + block.parentHash.substring(2);
     args += ',uncleHash=' + block.sha3Uncles.substring(2);
@@ -251,7 +251,7 @@ exports.waitTx = async (txId) => {
         return new Promise(resolve => setTimeout(resolve, milliseconds))
     }
     do {
-        let result = await getStatusTx(txId);
+        let result = await this.getStatusTx(txId);
         let status = result['result']['status'];
 
         if (status == 3 || status == 4) break;
