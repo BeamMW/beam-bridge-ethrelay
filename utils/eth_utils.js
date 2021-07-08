@@ -82,7 +82,10 @@ let getReceiptProof = async (untrustedTxHash, trustedBlockHash) => {
 };
 
 let pushRemoteMessage = async (msgId, msgContractSender, msgContractReceiver, messageBody) => {
-    const pushRemote = pipeContract.methods.pushRemoteMessage(msgId, '0x'+msgContractSender, '0x'+msgContractReceiver, '0x'+messageBody);
+    const contractSender = '0x' + msgContractSender;
+    const contractReceiver = '0x' + msgContractReceiver;
+    const body = '0x' + messageBody;
+    const pushRemote = pipeContract.methods.pushRemoteMessage(msgId, contractSender, contractReceiver, body);
 
     await requestToContract(
         process.env.TOKEN_SENDER, 
