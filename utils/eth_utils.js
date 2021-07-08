@@ -1,6 +1,7 @@
 const Web3 = require('web3');
 const BeamTokenContract = require('./BeamToken.json');
 const DummyContract = require('./DummyUser.json');
+const PipeContract = require('./Pipe.json');
 const { GetAndVerify, VerifyProof } = require('eth-proof');
 const { toBuffer } = require('eth-util-lite');
 
@@ -13,8 +14,12 @@ const dummyContract = new web3.eth.Contract(
     DummyContract.abi,
     process.env.DUMMY_USER
 );
+const pipeContract = new web3.eth.Contract(
+    PipeContract.abi,
+    process.env.ETH_PIPE_CONTRACT_ADDRESS
+);
 
-exports.requestToContract = async (sender, receiver, privateKey, abi) => {
+let requestToContract = async (sender, receiver, privateKey, abi) => {
     let nonce = await web3.eth.getTransactionCount(sender);
     let signedTx = await web3.eth.accounts.signTransaction({
         from: sender,
@@ -31,12 +36,12 @@ exports.requestToContract = async (sender, receiver, privateKey, abi) => {
     return createReceipt;
 }
 
-exports.sendMessages = (messages) => {
+let sendMessages = (messages) => {
     var res = JSON.parse(messages);
     console.log(res);
 }
 
-exports.lockToken = async (value, pubkey) => {
+let lockToken = async (value, pubkey) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
     console.log('sender: ', process.env.TOKEN_SENDER)
     const approveTx = tokenContract.methods.approve(process.env.DUMMY_USER, value);
@@ -57,7 +62,7 @@ exports.lockToken = async (value, pubkey) => {
     return lockTxReceipt;
 }
 
-exports.getReceiptProof = async (untrustedTxHash, trustedBlockHash) => {
+let getReceiptProof = async (untrustedTxHash, trustedBlockHash) => {
     let getAndVerify = new GetAndVerify(process.env.ETH_HTTP_PROVIDER);
 
     let resp = await getAndVerify.get.receiptProof(untrustedTxHash)
@@ -75,3 +80,21 @@ exports.getReceiptProof = async (untrustedTxHash, trustedBlockHash) => {
 
     return resp;
 };
+
+let pushRemoteMessage = async (msgId, msgContractSender, msgContractReceiver, messageBody) => {
+    const pushRemote = pipeContract.methods.pushRemoteMessage(msgId, '0x'+msgContractSender, '0x'+msgContractReceiver, '0x'+messageBody);
+
+    await requestToContract(
+        process.env.TOKEN_SENDER, 
+        process.env.ETH_PIPE_CONTRACT_ADDRESS, 
+        process.env.SENDER_PRIVATE_KEY, 
+        pushRemote.encodeABI());
+}
+
+module.exports = {
+    requestToContract,
+    sendMessages,
+    lockToken,
+    getReceiptProof,
+    pushRemoteMessage
+}
