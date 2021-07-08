@@ -31,7 +31,7 @@ exports.readMessages = () => {
     });
 };
 
-function baseFunction(contractFile, args, processResult) {
+function baseFunction(method, params, processResult) {
     return new Promise((resolve, reject) => {
         let accumulated = '';
         let options = {
@@ -59,19 +59,26 @@ function baseFunction(contractFile, args, processResult) {
             {
                 jsonrpc: '2.0',
                 id: 123,
-                method: 'invoke_contract',
-                params: {
-                    "contract_file": contractFile,
-                    "args": args
-                }
+                method: method,
+                params: params
             }) + '\n');
 
         request.end();
     });
 }
 
-exports.readPk = () => {
+function baseShaderFunction(contractFile, args, processResult) {
     return baseFunction(
+        'invoke_contract',
+        {
+            "contract_file": contractFile,
+            "args": args
+        },
+        processResult);
+}
+
+exports.readPk = () => {
+    return baseShaderFunction(
         process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
         'role=manager,action=generatePK,cid=' + process.env.CID,
         (data) => {
@@ -106,7 +113,7 @@ exports.importMsg = (amount, pubkey, block, proof, datasetCount, txIndex, receip
     args += ',receiptProof=' + receiptProof;
 
     let contractFile = process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm';
-    return baseFunction(contractFile, args, (data) => {
+    return baseShaderFunction(contractFile, args, (data) => {
         let res = JSON.parse(data);
         return res['result']['txid'];
     });
@@ -131,7 +138,7 @@ exports.genearateSeed = (block) => {
     
     let contractFile = process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm';
 
-    return baseFunction(contractFile, args, (data) => {
+    return baseShaderFunction(contractFile, args, (data) => {
         let res = JSON.parse(data);
         let output = JSON.parse(res['result']['output']);
         return output['seed'];
@@ -139,7 +146,7 @@ exports.genearateSeed = (block) => {
 };
 
 exports.finalizeMsg = () => {
-    return baseFunction(
+    return baseShaderFunction(
         process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
         'role=manager,action=finalizeMsg,cid=' + process.env.CID,
         (data) => {
@@ -150,7 +157,7 @@ exports.finalizeMsg = () => {
 };
 
 exports.unlock = () => {
-    return baseFunction(
+    return baseShaderFunction(
         process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
         'role=manager,action=unlock,cid=' + process.env.CID,
         (data) => {
@@ -161,43 +168,28 @@ exports.unlock = () => {
 };
 
 exports.getStatusTx = (txId) => {
-    return new Promise((resolve, reject) => {
-        let accumulated = '';
-        let options = {
-            host: process.env.BEAM_HOST,
-            path: process.env.HTPP_API_PATH,
-            port: process.env.BEAM_PORT,
-            method: 'POST'
-        };
-
-        let callback = (response) => {
-            response.on('data', (chunk) => {
-                accumulated += chunk;
-            });
-
-            response.on('end', () => {
-                let res = JSON.parse(accumulated);
-                resolve(res);
-            });
-
-            response.on('error', reject);
+    return baseFunction(
+        'tx_status', 
+        {
+            txId: txId
+        },
+        (data) => {
+            return JSON.parse(data);
         }
+    )
+}
 
-        let request = http.request(options, callback);
-
-        request.write(JSON.stringify(
-            {
-                jsonrpc: '2.0',
-                id: 123,
-                method: 'tx_status',
-                params: {
-                    "txId": txId
-                }
-            }) + '\n');
-
-        request.end();
-    });
-};
+exports.getBlockDetails = (height) => {
+    return baseFunction(
+        'block_details', 
+        {
+            height: height
+        },
+        (data) => {
+            return JSON.parse(data);
+        }
+    )
+}
 
 exports.bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, block, powProof, datasetCount, txIndex, receiptProof) => {
     let args = 'role=manager,action=pushRemote,cid=' + process.env.CID;
@@ -228,14 +220,14 @@ exports.bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, bl
     args += ',receiptProof=' + receiptProof;
 
     let contractFile = process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm';
-    return baseFunction(contractFile, args, (data) => {
+    return baseShaderFunction(contractFile, args, (data) => {
         let res = JSON.parse(data);
         return res['result']['txid'];
     });
 };
 
 exports.getUserPubkey = () => {
-    return baseFunction(
+    return baseShaderFunction(
         process.env.BEAM_SHADERS_PATH + '/mirrortoken/app.wasm',
         'role=user,action=get_pk,cid=' + process.env.BEAM_PIPE_USER_CID,
         (data) => {
@@ -261,7 +253,7 @@ exports.waitTx = async (txId) => {
 
 exports.getLocalMsgCount = () => {
     let args = 'role=manager,action=getLocalMsgCount,cid=' + process.env.BEAM_BRIDGE_CID;
-    return baseFunction(
+    return baseShaderFunction(
         process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
         args,
         (data) => {
@@ -275,7 +267,7 @@ exports.getLocalMsgCount = () => {
 exports.getLocalMsg = (msgId) => {
     let args = 'role=manager,action=getLocalMsg,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
-    return baseFunction(
+    return baseShaderFunction(
         process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
         args,
         (data) => {
@@ -285,6 +277,23 @@ exports.getLocalMsg = (msgId) => {
                 'sender': output['sender'],
                 'receiver': output['receiver'],
                 'body': output['body']
+            };
+        }
+    );
+};
+
+exports.getLocalMsgProof = (msgId) => {
+    let args = 'role=manager,action=getLocalMsgProof,cid=' + process.env.BEAM_BRIDGE_CID;
+    args += ',msgId=' + msgId;
+    return baseShaderFunction(
+        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
+        args,
+        (data) => {
+            let res = JSON.parse(data);
+            let output = JSON.parse(res['result']['output']);
+            return {
+                'proof': output['Proof']['nodes'],
+                'height': output['Proof']['height']
             };
         }
     );

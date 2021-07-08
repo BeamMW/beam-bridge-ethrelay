@@ -19,7 +19,7 @@ const pipeContract = new web3.eth.Contract(
     process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
-let requestToContract = async (sender, receiver, privateKey, abi) => {
+const requestToContract = async (sender, receiver, privateKey, abi) => {
     let nonce = await web3.eth.getTransactionCount(sender);
     let signedTx = await web3.eth.accounts.signTransaction({
         from: sender,
@@ -36,12 +36,12 @@ let requestToContract = async (sender, receiver, privateKey, abi) => {
     return createReceipt;
 }
 
-let sendMessages = (messages) => {
+const sendMessages = (messages) => {
     var res = JSON.parse(messages);
     console.log(res);
 }
 
-let lockToken = async (value, pubkey) => {
+const lockToken = async (value, pubkey) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
     console.log('sender: ', process.env.TOKEN_SENDER)
     const approveTx = tokenContract.methods.approve(process.env.DUMMY_USER, value);
@@ -62,7 +62,7 @@ let lockToken = async (value, pubkey) => {
     return lockTxReceipt;
 }
 
-let getReceiptProof = async (untrustedTxHash, trustedBlockHash) => {
+const getReceiptProof = async (untrustedTxHash, trustedBlockHash) => {
     let getAndVerify = new GetAndVerify(process.env.ETH_HTTP_PROVIDER);
 
     let resp = await getAndVerify.get.receiptProof(untrustedTxHash)
@@ -81,7 +81,7 @@ let getReceiptProof = async (untrustedTxHash, trustedBlockHash) => {
     return resp;
 };
 
-let pushRemoteMessage = async (msgId, msgContractSender, msgContractReceiver, messageBody) => {
+const pushRemoteMessage = async (msgId, msgContractSender, msgContractReceiver, messageBody) => {
     const contractSender = '0x' + msgContractSender;
     const contractReceiver = '0x' + msgContractReceiver;
     const body = '0x' + messageBody;
