@@ -22,11 +22,17 @@ const setRemote = async (remoteContractId) => {
     return receipt;
 }
 
-(async () => {
-    console.log("Calling 'setRemote' of Pipe contract:");
+if (require.main === module) {
+    (async () => {
+        console.log("Calling 'setRemote' of Pipe contract:");
+        
+        let receipt = await setRemote('0x' + process.env.BEAM_BRIDGE_CID);
     
-    let receipt = await setRemote('0x' + process.env.BEAM_BRIDGE_CID);
+        console.log("TX receipt: ", receipt);
+        console.log("'setRemote' is finished.")
+    })();
+}
 
-    console.log("TX receipt: ", receipt);
-    console.log("'setRemote' is finished.")
-})();
+module.exports = {
+    setRemote
+}
