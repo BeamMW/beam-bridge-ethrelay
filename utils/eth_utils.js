@@ -3,7 +3,7 @@ const PipeContract = require('./Pipe.json');
 const { GetAndVerify, VerifyProof } = require('eth-proof');
 const { toBuffer } = require('eth-util-lite');
 
-let web3 = new Web3(new Web3.providers.WebsocketProvider(process.env.ETH_WEBSOCKET_PROVIDER));
+let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
 const pipeContract = new web3.eth.Contract(
     PipeContract.abi,
     process.env.ETH_PIPE_CONTRACT_ADDRESS
