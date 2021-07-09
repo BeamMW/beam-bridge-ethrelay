@@ -1,12 +1,12 @@
 const Net = require('net');
 const http = require('http');
 
-function baseFunction(method, params, processResult) {
+function baseRequest(method, params, processResult) {
     return new Promise((resolve, reject) => {
         let accumulated = '';
         let options = {
             host: process.env.BEAM_HOST,
-            path: process.env.HTPP_API_PATH,
+            path: process.env.BEAM_HTPP_API_PATH,
             port: process.env.BEAM_PORT,
             method: 'POST'
         };
@@ -37,8 +37,8 @@ function baseFunction(method, params, processResult) {
     });
 }
 
-function baseShaderFunction(contractFile, args, processResult) {
-    return baseFunction(
+function baseShaderRequest(contractFile, args, processResult) {
+    return baseRequest(
         'invoke_contract',
         {
             "contract_file": contractFile,
@@ -46,48 +46,6 @@ function baseShaderFunction(contractFile, args, processResult) {
         },
         processResult);
 }
-
-const readPk = () => {
-    return baseShaderFunction(
-        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
-        'role=manager,action=generatePK,cid=' + process.env.CID,
-        (data) => {
-            let res = JSON.parse(data);
-            let output = JSON.parse(res['result']['output']);
-            return output['pubkey'];
-        }
-    );
-};
-
-// TODO: use msg(event) as arg instead of amount, pubkey..
-const importMsg = (amount, pubkey, block, proof, datasetCount, txIndex, receiptProof) => {
-    let args = 'role=manager,action=importMsg,cid=' + process.env.CID;
-    args += ',amount=' + amount + ',pubkey=' + pubkey;
-    args += ',parentHash=' + block.parentHash.substring(2);
-    args += ',uncleHash=' + block.sha3Uncles.substring(2);
-    args += ',coinbase=' + block.miner.substring(2);
-    args += ',root=' + block.stateRoot.substring(2);
-    args += ',txHash=' + block.transactionsRoot.substring(2);
-    args += ',receiptHash=' + block.receiptsRoot.substring(2);
-    args += ',bloom=' + block.logsBloom.substring(2);
-    args += ',extra=' + block.extraData.substring(2);
-    args += ',difficulty=' + block.difficulty;
-    args += ',number=' + block.number;
-    args += ',gasLimit=' + block.gasLimit;
-    args += ',gasUsed=' + block.gasUsed;
-    args += ',time=' + block.timestamp;
-    args += ',nonce=' + BigInt(block.nonce).toString();
-    args += ',proof=' + proof;
-    args += ',datasetCount=' + datasetCount;
-    args += ',txIndex=' + txIndex;
-    args += ',receiptProof=' + receiptProof;
-
-    let contractFile = process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm';
-    return baseShaderFunction(contractFile, args, (data) => {
-        let res = JSON.parse(data);
-        return res['result']['txid'];
-    });
-};
 
 const genearateSeed = (block) => {
     let args = 'role=manager,action=generateSeed';
@@ -108,37 +66,15 @@ const genearateSeed = (block) => {
     
     let contractFile = process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm';
 
-    return baseShaderFunction(contractFile, args, (data) => {
+    return baseShaderRequest(contractFile, args, (data) => {
         let res = JSON.parse(data);
         let output = JSON.parse(res['result']['output']);
         return output['seed'];
     });
 };
 
-const finalizeMsg = () => {
-    return baseShaderFunction(
-        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
-        'role=manager,action=finalizeMsg,cid=' + process.env.CID,
-        (data) => {
-            let res = JSON.parse(data);
-            return res['result']['txid'];
-        }
-    );
-};
-
-const unlock = () => {
-    return baseShaderFunction(
-        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
-        'role=manager,action=unlock,cid=' + process.env.CID,
-        (data) => {
-            let res = JSON.parse(data);
-            return res['result']['txid'];
-        }
-    );
-};
-
 const getStatusTx = (txId) => {
-    return baseFunction(
+    return baseRequest(
         'tx_status', 
         {
             txId: txId
@@ -150,7 +86,7 @@ const getStatusTx = (txId) => {
 }
 
 const getBlockDetails = (height) => {
-    return baseFunction(
+    return baseRequest(
         'block_details', 
         {
             height: height
@@ -162,7 +98,7 @@ const getBlockDetails = (height) => {
 }
 
 const bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, block, powProof, datasetCount, txIndex, receiptProof) => {
-    let args = 'role=manager,action=pushRemote,cid=' + process.env.CID;
+    let args = 'role=manager,action=pushRemote,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
     args += ',contractReceiver=' + contractReceiver.substring(2);
     args += ',contractSender=' + contractSender.substring(2);
@@ -190,16 +126,16 @@ const bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, bloc
     args += ',receiptProof=' + receiptProof;
 
     let contractFile = process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm';
-    return baseShaderFunction(contractFile, args, (data) => {
+    return baseShaderRequest(contractFile, args, (data) => {
         let res = JSON.parse(data);
         return res['result']['txid'];
     });
 };
 
 const getUserPubkey = () => {
-    return baseShaderFunction(
+    return baseShaderRequest(
         process.env.BEAM_SHADERS_PATH + '/mirrortoken/app.wasm',
-        'role=user,action=get_pk,cid=' + process.env.BEAM_PIPE_USER_CID,
+        'role=user,action=get_pk,cid=' + process.env.BEAM_BRIDGE_USER_CID,
         (data) => {
             let res = JSON.parse(data);
             let output = JSON.parse(res['result']['output']);
@@ -223,7 +159,7 @@ const waitTx = async (txId) => {
 
 const getLocalMsgCount = () => {
     let args = 'role=manager,action=getLocalMsgCount,cid=' + process.env.BEAM_BRIDGE_CID;
-    return baseShaderFunction(
+    return baseShaderRequest(
         process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
         args,
         (data) => {
@@ -237,7 +173,7 @@ const getLocalMsgCount = () => {
 const getLocalMsg = (msgId) => {
     let args = 'role=manager,action=getLocalMsg,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
-    return baseShaderFunction(
+    return baseShaderRequest(
         process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
         args,
         (data) => {
@@ -255,7 +191,7 @@ const getLocalMsg = (msgId) => {
 const getLocalMsgProof = (msgId) => {
     let args = 'role=manager,action=getLocalMsgProof,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
-    return baseShaderFunction(
+    return baseShaderRequest(
         process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
         args,
         (data) => {
@@ -270,11 +206,7 @@ const getLocalMsgProof = (msgId) => {
 };
 
 module.exports = {
-    readPk,
-    importMsg,
     genearateSeed,
-    finalizeMsg,
-    unlock,
     getStatusTx,
     getBlockDetails,
     bridgePushRemote,

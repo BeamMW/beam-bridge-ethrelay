@@ -9,7 +9,7 @@ const PipeUserContract = require('./utils/PipeUser.json');
 let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
 const tokenContract = new web3.eth.Contract(
     BeamTokenContract.abi,
-    process.env.TOKEN_CONTRACT
+    process.env.ETH_TOKEN_CONTRACT
 );
 const pipeUserContract = new web3.eth.Contract(
     PipeUserContract.abi,
@@ -18,19 +18,19 @@ const pipeUserContract = new web3.eth.Contract(
 
 lockToken = async (value, pubkey) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
-    console.log('sender: ', process.env.TOKEN_SENDER)
+    console.log('sender: ', process.env.ETH_TOKEN_SENDER)
     const approveTx = tokenContract.methods.approve(process.env.ETH_PIPE_USER_CONTRACT_ADDRESS, value);
     const lockTx = pipeUserContract.methods.sendFunds(value, pubkey);
 
     await eth_utils.requestToContract(
-        process.env.TOKEN_SENDER, 
-        process.env.TOKEN_CONTRACT, 
-        process.env.SENDER_PRIVATE_KEY, 
+        process.env.ETH_TOKEN_SENDER, 
+        process.env.ETH_TOKEN_CONTRACT, 
+        process.env.ETH_SENDER_PRIVATE_KEY, 
         approveTx.encodeABI());
     let lockTxReceipt = await eth_utils.requestToContract(
-        process.env.TOKEN_SENDER, 
+        process.env.ETH_TOKEN_SENDER, 
         process.env.ETH_PIPE_USER_CONTRACT_ADDRESS,
-        process.env.SENDER_PRIVATE_KEY, 
+        process.env.ETH_SENDER_PRIVATE_KEY, 
         lockTx.encodeABI());
 
     //console.log(lockTxReceipt);
