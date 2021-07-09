@@ -13,7 +13,7 @@ const eth = require('./utils/eth_utils.js');
     result = await beam.getLocalMsg(count);
     console.log('msg: ', result);
 
-    await eth.pushRemoteMessage(2, result['sender'], result['receiver'], result['body']);
+    await eth.pushRemoteMessage(count, result['sender'], result['receiver'], result['body']);
     console.log('pushed message');
     result = await beam.getLocalMsgProof(count);
     console.log('proof: ', result);
