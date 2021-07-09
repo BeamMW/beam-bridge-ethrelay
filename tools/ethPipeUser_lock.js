@@ -1,10 +1,10 @@
 require('dotenv').config();
 
-const beam = require('./utils/beam_utils.js');
-const eth_utils = require('./utils/eth_utils.js');
+const beam = require('./../utils/beam_utils.js');
+const eth_utils = require('./../utils/eth_utils.js');
 const Web3 = require('web3');
-const BeamTokenContract = require('./utils/BeamToken.json');
-const PipeUserContract = require('./utils/PipeUser.json');
+const BeamTokenContract = require('./../utils/BeamToken.json');
+const PipeUserContract = require('./../utils/PipeUser.json');
 
 let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
 const tokenContract = new web3.eth.Contract(
