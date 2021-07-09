@@ -3,7 +3,7 @@ const PipeContract = require('./Pipe.json');
 const { GetAndVerify, VerifyProof } = require('eth-proof');
 const { toBuffer } = require('eth-util-lite');
 
-let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
+let web3 = new Web3(new Web3.providers.WebsocketProvider(process.env.ETH_WEBSOCKET_PROVIDER));
 const pipeContract = new web3.eth.Contract(
     PipeContract.abi,
     process.env.ETH_PIPE_CONTRACT_ADDRESS
@@ -18,12 +18,18 @@ const requestToContract = async (sender, receiver, privateKey, abi) => {
         gas: 2000000,
         nonce: nonce,
     }, privateKey);
-    let createReceipt = await web3.eth.sendSignedTransaction(
-        signedTx.rawTransaction
-    );
 
-    //console.log('createReceipt: ', createReceipt);
-    return createReceipt;
+    console.log('signed tx: ', signedTx);
+    try {
+        let createReceipt = await web3.eth.sendSignedTransaction(
+            signedTx.rawTransaction
+        );
+
+        //console.log('createReceipt: ', createReceipt);
+        return createReceipt;
+    } catch (err) {
+        console.log('exception: ', err);
+    }
 }
 
 const getReceiptProof = async (untrustedTxHash, trustedBlockHash) => {
@@ -59,23 +65,32 @@ const pushRemoteMessage = async (msgId, msgContractSender, msgContractReceiver, 
 }
 
 const validateRemoteMessage = async (msgId, proof, blockDetails) => {
-    const func = pipeContract.methods.validateRemoteMessage(
+    const prevBlock = '0x' + blockDetails['previous_block'];
+    const chainwork = '0x' + blockDetails['chainwork'];
+    const kernels = '0x' + blockDetails['kernels'];
+    const definition = '0x' + blockDetails['definition']
+    const height = blockDetails['height'];
+    const timestamp = blockDetails['timestamp'];
+    const pow = '0x' + blockDetails['pow'];
+    const rulesHash = '0x' + blockDetails['rules_hash'];
+    const hexProof = '0x' + proof;
+    const validateMessage = pipeContract.methods.validateRemoteMessage(
         msgId, 
-        '0x' + blockDetails['previous_block'],
-        '0x' + blockDetails['chainwork'],
-        '0x' + blockDetails['kernels'],
-        '0x' + blockDetails['definition'],
-        blockDetails['height'],
-        blockDetails['timestamp'],
-        '0x' + blockDetails['pow'],
-        '0x' + blockDetails['rules_hash'],
-        '0x' + proof);
+        prevBlock,
+        chainwork,
+        kernels,
+        definition,
+        height,
+        timestamp,
+        pow,
+        rulesHash,
+        hexProof);
 
     await requestToContract(
         process.env.ETH_TOKEN_SENDER, 
         process.env.ETH_PIPE_CONTRACT_ADDRESS, 
         process.env.ETH_SENDER_PRIVATE_KEY, 
-        func.encodeABI());
+        validateMessage.encodeABI());
 }
 
 module.exports = {
