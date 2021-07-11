@@ -149,7 +149,7 @@ const waitTx = async (txId) => {
         return new Promise(resolve => setTimeout(resolve, milliseconds))
     }
     do {
-        let result = await this.getStatusTx(txId);
+        let result = await getStatusTx(txId);
         let status = result['result']['status'];
 
         if (status == 3 || status == 4) break;
