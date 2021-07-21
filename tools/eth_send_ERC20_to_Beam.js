@@ -40,15 +40,10 @@ lockToken = async (value, pubkey) => {
 (async () => {
     console.log("Calling 'sendFunds' of PipeUser contract:");
     const amount = 7000000;
-    
-    // get receiver's pubkey from Beam chain
-    let pubkey = await beam.getUserPubkey();
-    let pubkey_ = '0x' + pubkey;
 
     // lock 'tokens' on Ethereum chain
-    let receipt = await lockToken(amount, pubkey_);
+    let receipt = await lockToken(amount, process.env.BEAM_PUBLIC_KEY);
 
-    console.log("recipient's pubkey: ", pubkey);
     console.log("TX receipt: ", receipt);
     console.log("'sendFunds' is finished.")
 })();
