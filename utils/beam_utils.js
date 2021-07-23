@@ -92,6 +92,9 @@ const bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, bloc
     args += ',gasUsed=' + block.gasUsed;
     args += ',time=' + block.timestamp;
     args += ',nonce=' + BigInt(block.nonce).toString();
+    if (block.baseFeePerGas !== undefined) {
+        args += ',baseFeePerGas=' + BigInt(block.baseFeePerGas).toString();
+    }
     // POWProof
     args += ',powProof=' + powProof;
     args += ',datasetCount=' + datasetCount;

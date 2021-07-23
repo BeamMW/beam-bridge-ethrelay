@@ -17,8 +17,7 @@ const changeEndianness = (string) => {
 }
 
 function generatePOWSeed(block) {
-    // look at https://github.com/pantos-io/ethrelay/blob/master/utils/utils.js
-    let encoded = RLP.encode([
+    let blockData = [
         block.parentHash,
         block.sha3Uncles,
         block.miner,
@@ -32,7 +31,13 @@ function generatePOWSeed(block) {
         block.gasUsed,
         block.timestamp,
         block.extraData
-    ]);
+    ];
+
+    if (block.baseFeePerGas !== undefined) {
+        blockData.push(block.baseFeePerGas);
+    }
+
+    let encoded = RLP.encode(blockData);
     let prePoWBlockHash = keccak256(encoded).toString('hex');
     let tmp = prePoWBlockHash + changeEndianness(block.nonce);
     
