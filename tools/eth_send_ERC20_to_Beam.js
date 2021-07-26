@@ -18,7 +18,7 @@ const pipeUserContract = new web3.eth.Contract(
 
 const {program} = require('commander');
 
-program.option('-a, --amount <number>', 'start message id', 7000000);
+program.option('-a, --amount <number>', 'amount of tokens to send', 7000000);
 
 program.parse(process.argv);
 
