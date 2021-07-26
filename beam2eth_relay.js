@@ -2,8 +2,14 @@ require('dotenv').config();
 
 const beam = require('./utils/beam_utils.js');
 const eth = require('./utils/eth_utils.js');
+const {program} = require('commander');
 
-let startMsgId = 12;
+program.option('-m, --msgId <number>', 'start message id', 23);
+
+program.parse(process.argv);
+
+const options = program.opts();
+let startMsgId = options.msgId;
 
 async function monitorBridge() {
     let count = await beam.getLocalMsgCount();

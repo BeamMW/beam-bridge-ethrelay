@@ -43,9 +43,17 @@ async function processEvent(event) {
     console.log("The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
 }
 
+const {program} = require('commander');
+
+program.option('-b, --startBlock <number>', 'start block', 0);
+
+program.parse(process.argv);
+
+const options = program.opts();
+
 // subscribe to Pipe.NewLocalMessage
 pipeContract.events.NewLocalMessage({
-    fromBlock: 0
+    fromBlock: options.startBlock
 }, function(error, event) { console.log(event); })
 .on("connected", function(subscriptionId) {
     console.log(subscriptionId);

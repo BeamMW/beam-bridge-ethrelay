@@ -16,6 +16,14 @@ const pipeUserContract = new web3.eth.Contract(
     process.env.ETH_PIPE_USER_CONTRACT_ADDRESS
 );
 
+const {program} = require('commander');
+
+program.option('-a, --amount <number>', 'start message id', 7000000);
+
+program.parse(process.argv);
+
+const options = program.opts();
+
 lockToken = async (value, pubkey) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
     console.log('sender: ', process.env.ETH_TOKEN_SENDER)
@@ -39,7 +47,7 @@ lockToken = async (value, pubkey) => {
 
 (async () => {
     console.log("Calling 'sendFunds' of PipeUser contract:");
-    const amount = 7000000;
+    const amount = options.amount;
 
     // lock 'tokens' on Ethereum chain
     let receipt = await lockToken(amount, process.env.BEAM_PUBLIC_KEY);
