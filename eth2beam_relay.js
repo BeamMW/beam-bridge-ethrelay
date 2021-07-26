@@ -21,10 +21,10 @@ async function processEvent(event) {
     let txHash = event["transactionHash"];
     let blockHash = event["blockHash"];
     let receiptProofData = await eth_utils.getReceiptProof(txHash, blockHash);
-    console.log("ReceiptProof: ", receiptProofData.receiptProof.hex);
+    //console.log("ReceiptProof: ", receiptProofData.receiptProof.hex);
 
     let block = await web3.eth.getBlock(event['blockNumber']);
-    console.log('block = ', block);
+    //console.log('block = ', block);
 
     let [powProof, powDatasetCount] = await ethash_utils.GetPOWProof(block);
 
@@ -54,12 +54,12 @@ const options = program.opts();
 // subscribe to Pipe.NewLocalMessage
 pipeContract.events.NewLocalMessage({
     fromBlock: options.startBlock
-}, function(error, event) { console.log(event); })
+}, function(error, event) { /*console.log(event);*/ })
 .on("connected", function(subscriptionId) {
-    console.log(subscriptionId);
+    console.log('subscription id: ', subscriptionId);
 })
 .on('data', function(event) {
-    console.log("New event: ", event);
+    //console.log("New event: ", event);
     // TODO: wait enough confirmations?
     processEvent(event);
 })

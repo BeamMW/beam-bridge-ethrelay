@@ -37,6 +37,6 @@ receiveToken = async (msgId) => {
     const msgId = options.msgId;
     let receipt = await receiveToken(msgId);
 
-    console.log("TX receipt: ", receipt);
+    //console.log("TX receipt: ", receipt);
     console.log("'receiveFunds' is finished.")
 })();

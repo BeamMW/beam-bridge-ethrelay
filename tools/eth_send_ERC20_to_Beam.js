@@ -52,6 +52,6 @@ lockToken = async (value, pubkey) => {
     // lock 'tokens' on Ethereum chain
     let receipt = await lockToken(amount, process.env.BEAM_PUBLIC_KEY);
 
-    console.log("TX receipt: ", receipt);
+    //console.log("TX receipt: ", receipt);
     console.log("'sendFunds' is finished.")
 })();

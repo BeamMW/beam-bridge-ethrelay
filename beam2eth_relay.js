@@ -13,22 +13,22 @@ let startMsgId = options.msgId;
 
 async function monitorBridge() {
     let count = await beam.getLocalMsgCount();
-    console.log('count = ', count);
-
+    
     for (; startMsgId <= count; startMsgId++) {
         let localMsg = await beam.getLocalMsg(startMsgId);
-        console.log('msg: ', localMsg);
+        console.log("Processing of a new message has started. Message ID - ", startMsgId);
+        //console.log('msg: ', localMsg);
 
         await eth.pushRemoteMessage(startMsgId, localMsg['sender'], localMsg['receiver'], localMsg['body']);
-        console.log('pushed message');
+        //console.log('pushed message');
         let msgProof = await beam.getLocalMsgProof(startMsgId);
-        console.log('proof: ', msgProof);
+        //console.log('proof: ', msgProof);
 
         let blockDetails = await beam.getBlockDetails(msgProof['height']);
-        console.log('block details: ', blockDetails);
+        //console.log('block details: ', blockDetails);
 
         await eth.validateRemoteMessage(startMsgId, msgProof['proof'], blockDetails);
-        console.log('validated message');
+        console.log("The message was successfully transferred to the Beam. Message ID - ", startMsgId);
     }
 
     setTimeout(monitorBridge, 15 * 1000);
