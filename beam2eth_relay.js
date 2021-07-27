@@ -1,5 +1,9 @@
 require('dotenv').config();
 
+function currentTime() {
+    return "[" + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) + "] ";
+}
+
 const beam = require('./utils/beam_utils.js');
 const eth = require('./utils/eth_utils.js');
 const {program} = require('commander');
@@ -16,7 +20,7 @@ async function monitorBridge() {
     
     for (; startMsgId <= count; startMsgId++) {
         let localMsg = await beam.getLocalMsg(startMsgId);
-        console.log("Processing of a new message has started. Message ID - ", startMsgId);
+        console.log(currentTime(), "Processing of a new message has started. Message ID - ", startMsgId);
         //console.log('msg: ', localMsg);
 
         await eth.pushRemoteMessage(startMsgId, localMsg['sender'], localMsg['receiver'], localMsg['body']);
@@ -28,7 +32,7 @@ async function monitorBridge() {
         //console.log('block details: ', blockDetails);
 
         await eth.validateRemoteMessage(startMsgId, msgProof['proof'], blockDetails);
-        console.log("The message was successfully transferred to the Beam. Message ID - ", startMsgId);
+        console.log(currentTime(), "The message was successfully transferred to the Ethereum. Message ID - ", startMsgId);
     }
 
     setTimeout(monitorBridge, 15 * 1000);

@@ -15,8 +15,13 @@ const pipeContract = new web3.eth.Contract(
     process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
+// TODO roman.strilets 
+function currentTime() {
+    return "[" + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) + "] ";
+}
+
 async function processEvent(event) {
-    console.log("Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
+    console.log(currentTime(), "Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
 
     let txHash = event["transactionHash"];
     let blockHash = event["blockHash"];
@@ -40,7 +45,7 @@ async function processEvent(event) {
         receiptProofData.receiptProof.hex.substring(2));
 
     await beam.waitTx(pushRemoteTxID);
-    console.log("The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
+    console.log(currentTime(), "The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
 }
 
 const {program} = require('commander');
