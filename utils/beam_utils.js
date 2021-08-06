@@ -99,8 +99,7 @@ const bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, bloc
     args += ',txIndex=' + txIndex;
     args += ',receiptProof=' + receiptProof;
 
-    let contractFile = process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm';
-    return baseShaderRequest(contractFile, args, (data) => {
+    return baseShaderRequest(process.env.BEAM_PIPE_APP_PATH, args, (data) => {
         let res = JSON.parse(data);
         return res['result']['txid'];
     });
@@ -108,7 +107,7 @@ const bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, bloc
 
 const getUserPubkey = () => {
     return baseShaderRequest(
-        process.env.BEAM_SHADERS_PATH + '/mirrortoken/app.wasm',
+        process.env.BEAM_MIRRORTOKEN_APP_PATH,
         'role=user,action=get_pk,cid=' + process.env.BEAM_BRIDGE_USER_CID,
         (data) => {
             let res = JSON.parse(data);
@@ -134,7 +133,7 @@ const waitTx = async (txId) => {
 const getLocalMsgCount = () => {
     let args = 'role=manager,action=getLocalMsgCount,cid=' + process.env.BEAM_BRIDGE_CID;
     return baseShaderRequest(
-        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
+        process.env.BEAM_PIPE_APP_PATH,
         args,
         (data) => {
             let res = JSON.parse(data);
@@ -148,7 +147,7 @@ const getLocalMsg = (msgId) => {
     let args = 'role=manager,action=getLocalMsg,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
     return baseShaderRequest(
-        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
+        process.env.BEAM_PIPE_APP_PATH,
         args,
         (data) => {
             let res = JSON.parse(data);
@@ -166,7 +165,7 @@ const getLocalMsgProof = (msgId) => {
     let args = 'role=manager,action=getLocalMsgProof,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
     return baseShaderRequest(
-        process.env.BEAM_SHADERS_PATH + '/bridge/app.wasm',
+        process.env.BEAM_PIPE_APP_PATH,
         args,
         (data) => {
             let res = JSON.parse(data);
