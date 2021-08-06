@@ -5,8 +5,10 @@ const ethash_utils = require('./utils/ethash_utils.js');
 const eth_utils = require('./utils/eth_utils.js');
 const Web3 = require('web3');
 const RLP = require('rlp');
+const fs = require('fs');
 
 const PipeContract = require('./utils/Pipe.json');
+const SETTINGS_FILE = './eth2beam_settings.json';
 
 let web3 = new Web3(new Web3.providers.WebsocketProvider(process.env.ETH_WEBSOCKET_PROVIDER));
 
@@ -15,16 +17,29 @@ const pipeContract = new web3.eth.Contract(
     process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
+// TODO roman.strilets 
+function currentTime() {
+    return "[" + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) + "] ";
+}
+
+function saveSettings(value) {
+    try {
+        fs.writeFileSync(SETTINGS_FILE, JSON.stringify({
+            'startBlock': value
+        }));
+    } catch (e) {}
+}
+
 async function processEvent(event) {
-    console.log("Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
+    console.log(currentTime(), "Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
 
     let txHash = event["transactionHash"];
     let blockHash = event["blockHash"];
     let receiptProofData = await eth_utils.getReceiptProof(txHash, blockHash);
-    console.log("ReceiptProof: ", receiptProofData.receiptProof.hex);
+    //console.log("ReceiptProof: ", receiptProofData.receiptProof.hex);
 
     let block = await web3.eth.getBlock(event['blockNumber']);
-    console.log('block = ', block);
+    //console.log('block = ', block);
 
     let [powProof, powDatasetCount] = await ethash_utils.GetPOWProof(block);
 
@@ -40,18 +55,39 @@ async function processEvent(event) {
         receiptProofData.receiptProof.hex.substring(2));
 
     await beam.waitTx(pushRemoteTxID);
-    console.log("The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
+    console.log(currentTime(), "The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
+    saveSettings(block.number + 1);
+}
+
+const {program} = require('commander');
+
+program.option('-b, --startBlock <number>', 'start block');
+
+program.parse(process.argv);
+
+const options = program.opts();
+let startBlock = 0;
+
+if (options.startBlock !== undefined) {
+    startBlock = options.startBlock;
+    saveSettings(startBlock);
+} else {
+    try {
+        let data = fs.readFileSync(SETTINGS_FILE);
+        let obj = JSON.parse(data);
+        startBlock = obj['startBlock'];
+    } catch (e) { }
 }
 
 // subscribe to Pipe.NewLocalMessage
 pipeContract.events.NewLocalMessage({
-    fromBlock: 0
-}, function(error, event) { console.log(event); })
+    fromBlock: startBlock
+}, function(error, event) { /*console.log(event);*/ })
 .on("connected", function(subscriptionId) {
-    console.log(subscriptionId);
+    console.log('subscription id: ', subscriptionId);
 })
 .on('data', function(event) {
-    console.log("New event: ", event);
+    //console.log("New event: ", event);
     // TODO: wait enough confirmations?
     processEvent(event);
 })

@@ -19,7 +19,7 @@ const requestToContract = async (sender, receiver, privateKey, abi) => {
         nonce: nonce,
     }, privateKey);
 
-    console.log('signed tx: ', signedTx);
+    //console.log('signed tx: ', signedTx);
     try {
         let createReceipt = await web3.eth.sendSignedTransaction(
             signedTx.rawTransaction
