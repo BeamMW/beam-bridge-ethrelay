@@ -110,8 +110,8 @@ const bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, bloc
 
 const getUserPubkey = () => {
     return baseShaderRequest(
-        process.env.BEAM_MIRRORTOKEN_APP_PATH,
-        'role=user,action=get_pk,cid=' + process.env.BEAM_BRIDGE_USER_CID,
+        process.env.BEAM_PIPE_APP_PATH,
+        'role=user,action=get_pk,cid=' + process.env.BEAM_BRIDGE_CID,
         (data) => {
             let res = JSON.parse(data);
             let output = JSON.parse(res['result']['output']);
