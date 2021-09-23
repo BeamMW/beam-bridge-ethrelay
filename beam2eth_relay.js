@@ -24,38 +24,35 @@ program.option('-m, --msgId <number>', 'start message id');
 program.parse(process.argv);
 
 const options = program.opts();
-let startMsgId = 1;
+let msgId = 1;
 
 if (options.msgId !== undefined) {
-    startMsgId = options.msgId;
-    saveSettings(startMsgId);
+    msgId = options.msgId;
+    saveSettings(msgId);
 } else {
     try {
         let data = fs.readFileSync(SETTINGS_FILE);
         let obj = JSON.parse(data);
-        startMsgId = obj['startMsgId'];
+        msgId = obj['startMsgId'];
     } catch (e) { }
 }
 
 async function monitorBridge() {
     let count = await beam.getLocalMsgCount();
     
-    while (startMsgId <= count) {
-        let localMsg = await beam.getLocalMsg(startMsgId);
-        console.log(currentTime(), "Processing of a new message has started. Message ID - ", startMsgId);
-        //console.log('msg: ', localMsg);
+    while (msgId <= count) {
+        let localMsg = await beam.getLocalMsg(msgId);
+        console.log(currentTime(), "Processing of a new message has started. Message ID - ", msgId);
 
-        await eth.pushRemoteMessage(startMsgId, localMsg['sender'], localMsg['receiver'], localMsg['body']);
-        //console.log('pushed message');
-        let msgProof = await beam.getLocalMsgProof(startMsgId);
-        //console.log('proof: ', msgProof);
-
+        // TODO: check another way to get blockDetails for msg
+        let msgProof = await beam.getLocalMsgProof(msgId);
         let blockDetails = await beam.getBlockDetails(msgProof['height']);
-        //console.log('block details: ', blockDetails);
 
-        await eth.validateRemoteMessage(startMsgId, msgProof['proof'], blockDetails);
-        console.log(currentTime(), "The message was successfully transferred to the Ethereum. Message ID - ", startMsgId);
-        saveSettings(++startMsgId);
+        await eth.pushRemoteMessage(msgId, localMsg['contractSender'], localMsg['contractReceiver'], blockDetails['height'],
+            blockDetails['timestamp'], localMsg['amount'], localMsg['receiver']);
+
+        console.log(currentTime(), "The message was successfully transferred to the Ethereum. Message ID - ", msgId);
+        saveSettings(++msgId);
     }
 
     setTimeout(monitorBridge, 15 * 1000);
@@ -63,4 +60,6 @@ async function monitorBridge() {
 
 (async () => {
     await monitorBridge();
+    // TODO: dispute or time
+    // TODO: finalyzeRemoteMessage
 })();

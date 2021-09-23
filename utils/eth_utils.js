@@ -51,11 +51,13 @@ const getReceiptProof = async (untrustedTxHash, trustedBlockHash) => {
     return resp;
 };
 
-const pushRemoteMessage = async (msgId, msgContractSender, msgContractReceiver, messageBody) => {
+const pushRemoteMessage = async (msgId, msgContractSender, msgContractReceiver, msgBlockHeight,
+    msgBlockTimestamp, amount, receiver) => {
     const contractSender = '0x' + msgContractSender;
     const contractReceiver = '0x' + msgContractReceiver;
-    const body = '0x' + messageBody;
-    const pushRemote = pipeContract.methods.pushRemoteMessage(msgId, contractSender, contractReceiver, body);
+    const tmpReceiver = '0x' + receiver;
+    const pushRemote = pipeContract.methods.pushRemoteMessage(msgId, contractSender, contractReceiver,
+        msgBlockHeight, msgBlockTimestamp, amount, tmpReceiver);
 
     await requestToContract(
         process.env.ETH_TOKEN_SENDER, 
