@@ -71,12 +71,13 @@ const getBlockDetails = (height) => {
     )
 }
 
-const bridgePushRemote = (msgId, contractReceiver, contractSender, msgBody, block, powProof, datasetCount, txIndex, receiptProof) => {
+const bridgePushRemote = (msgId, contractReceiver, contractSender, amount, receiver, block, powProof, datasetCount, txIndex, receiptProof) => {
     let args = 'role=manager,action=pushRemote,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
     args += ',contractReceiver=' + contractReceiver.substring(2);
     args += ',contractSender=' + contractSender.substring(2);
-    args += ',msgBody=' + msgBody.substring(2);
+    args += ',amount=' + amount;
+    args += ',receiver=' + receiver.substring(2);
     // eth header
     args += ',parentHash=' + block.parentHash.substring(2);
     args += ',uncleHash=' + block.sha3Uncles.substring(2);
