@@ -33,15 +33,8 @@ function saveSettings(value) {
 async function processEvent(event) {
     console.log(currentTime(), "Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
 
-    let txHash = event["transactionHash"];
-    let blockHash = event["blockHash"];
-    let receiptProofData = await eth_utils.getReceiptProof(txHash, blockHash);
-    //console.log("ReceiptProof: ", receiptProofData.receiptProof.hex);
-
     let block = await web3.eth.getBlock(event['blockNumber']);
     //console.log('block = ', block);
-
-    let [powProof, powDatasetCount] = await ethash_utils.GetPOWProof(block);
 
     let pushRemoteTxID = await beam.bridgePushRemote(
         event["returnValues"]["msgId"],
@@ -49,11 +42,8 @@ async function processEvent(event) {
         event["returnValues"]["msgContractSender"],
         event["returnValues"]["amount"],
         event["returnValues"]["receiver"],
-        block, 
-        powProof, 
-        powDatasetCount, 
-        RLP.encode(parseInt(receiptProofData.txIndex)).toString('hex'),
-        receiptProofData.receiptProof.hex.substring(2));
+        block.number,
+        block.timestamp);
 
     await beam.waitTx(pushRemoteTxID);
     console.log(currentTime(), "The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);

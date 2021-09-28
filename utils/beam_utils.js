@@ -8,7 +8,8 @@ function baseRequest(method, params, processResult) {
             host: process.env.BEAM_HOST,
             path: process.env.BEAM_HTPP_API_PATH,
             port: process.env.BEAM_PORT,
-            method: 'POST'
+            method: 'POST',
+            timeout: 5000,
         };
 
         let callback = (response) => {
@@ -71,37 +72,15 @@ const getBlockDetails = (height) => {
     )
 }
 
-const bridgePushRemote = (msgId, contractReceiver, contractSender, amount, receiver, block, powProof, datasetCount, txIndex, receiptProof) => {
+const bridgePushRemote = (msgId, contractReceiver, contractSender, amount, receiver, blockHeight, blockTimestamp) => {
     let args = 'role=manager,action=pushRemote,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
     args += ',contractReceiver=' + contractReceiver.substring(2);
     args += ',contractSender=' + contractSender.substring(2);
     args += ',amount=' + amount;
     args += ',receiver=' + receiver.substring(2);
-    // eth header
-    args += ',parentHash=' + block.parentHash.substring(2);
-    args += ',uncleHash=' + block.sha3Uncles.substring(2);
-    args += ',coinbase=' + block.miner.substring(2);
-    args += ',root=' + block.stateRoot.substring(2);
-    args += ',txHash=' + block.transactionsRoot.substring(2);
-    args += ',receiptHash=' + block.receiptsRoot.substring(2);
-    args += ',bloom=' + block.logsBloom.substring(2);
-    args += ',extra=' + block.extraData.substring(2);
-    args += ',difficulty=' + block.difficulty;
-    args += ',number=' + block.number;
-    args += ',gasLimit=' + block.gasLimit;
-    args += ',gasUsed=' + block.gasUsed;
-    args += ',time=' + block.timestamp;
-    args += ',nonce=' + BigInt(block.nonce).toString();
-    if (block.baseFeePerGas !== undefined) {
-        args += ',baseFeePerGas=' + BigInt(block.baseFeePerGas).toString();
-    }
-    // POWProof
-    args += ',powProof=' + powProof;
-    args += ',datasetCount=' + datasetCount;
-    // ReceiptProof
-    args += ',txIndex=' + txIndex;
-    args += ',receiptProof=' + receiptProof;
+    args += ',height=' + blockHeight;
+    args += ',timestamp=' + blockTimestamp;
 
     return baseShaderRequest(process.env.BEAM_PIPE_APP_PATH, args, (data) => {
         let res = JSON.parse(data);
