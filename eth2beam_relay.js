@@ -46,6 +46,10 @@ async function processEvent(event) {
         block.timestamp);
 
     await beam.waitTx(pushRemoteTxID);
+
+    let finalizeMsgTxID = await beam.finalizeRemoteMsg(event["returnValues"]["msgId"]);
+
+    await beam.waitTx(finalizeMsgTxID);
     console.log(currentTime(), "The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
     saveSettings(block.number + 1);
 }

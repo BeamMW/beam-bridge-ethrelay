@@ -73,7 +73,7 @@ const getBlockDetails = (height) => {
 }
 
 const bridgePushRemote = (msgId, contractReceiver, contractSender, amount, receiver, blockHeight, blockTimestamp) => {
-    let args = 'role=manager,action=pushRemote,cid=' + process.env.BEAM_BRIDGE_CID;
+    let args = 'action=push_remote,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
     args += ',contractReceiver=' + contractReceiver.substring(2);
     args += ',contractSender=' + contractSender.substring(2);
@@ -82,6 +82,16 @@ const bridgePushRemote = (msgId, contractReceiver, contractSender, amount, recei
     args += ',height=' + blockHeight;
     args += ',timestamp=' + blockTimestamp;
 
+    return baseShaderRequest(process.env.BEAM_PIPE_APP_PATH, args, (data) => {
+        let res = JSON.parse(data);
+        return res['result']['txid'];
+    });
+};
+
+const finalizeRemoteMsg = (msgId) => {
+    let args = 'action=finalize_remote_msg,cid=' + process.env.BEAM_BRIDGE_CID;
+    args += ',msgId=' + msgId;
+    
     return baseShaderRequest(process.env.BEAM_PIPE_APP_PATH, args, (data) => {
         let res = JSON.parse(data);
         return res['result']['txid'];
@@ -165,6 +175,7 @@ module.exports = {
     getStatusTx,
     getBlockDetails,
     bridgePushRemote,
+    finalizeRemoteMsg,
     getUserPubkey,
     waitTx,
     getLocalMsgCount,
