@@ -124,7 +124,7 @@ const waitTx = async (txId) => {
 }
 
 const getLocalMsgCount = () => {
-    let args = 'role=manager,action=getLocalMsgCount,cid=' + process.env.BEAM_BRIDGE_CID;
+    let args = 'action=local_msg_count,cid=' + process.env.BEAM_BRIDGE_CID;
     return baseShaderRequest(
         process.env.BEAM_PIPE_APP_PATH,
         args,
@@ -137,7 +137,7 @@ const getLocalMsgCount = () => {
 };
 
 const getLocalMsg = (msgId) => {
-    let args = 'role=manager,action=getLocalMsg,cid=' + process.env.BEAM_BRIDGE_CID;
+    let args = 'role=manager,action=local_msg,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
     return baseShaderRequest(
         process.env.BEAM_PIPE_APP_PATH,
@@ -146,16 +146,17 @@ const getLocalMsg = (msgId) => {
             let res = JSON.parse(data);
             let output = JSON.parse(res['result']['output']);
             return {
-                'sender': output['sender'],
                 'receiver': output['receiver'],
-                'body': output['body']
+                'contractSender': output['contractSender'],
+                'contractReceiver': output['contractReceiver'],
+                'amount': output['amount']
             };
         }
     );
 };
 
 const getLocalMsgProof = (msgId) => {
-    let args = 'role=manager,action=getLocalMsgProof,cid=' + process.env.BEAM_BRIDGE_CID;
+    let args = 'role=manager,action=local_msg_proof,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
     return baseShaderRequest(
         process.env.BEAM_PIPE_APP_PATH,
