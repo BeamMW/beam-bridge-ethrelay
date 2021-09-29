@@ -51,7 +51,8 @@ async function monitorBridge() {
         await eth.pushRemoteMessage(msgId, localMsg['contractSender'], localMsg['contractReceiver'], blockDetails['height'],
             blockDetails['timestamp'], localMsg['amount'], localMsg['receiver']);
 
-        await eth.validateRemoteMessage(msgId, msgProof['proof'], blockDetails);
+        // TODO: remove after tests
+        await eth.finalyzeRemoteMessage(msgId);
 
         console.log(currentTime(), "The message was successfully transferred to the Ethereum. Message ID - ", msgId);
         saveSettings(++msgId);

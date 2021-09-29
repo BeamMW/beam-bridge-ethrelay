@@ -95,9 +95,20 @@ const validateRemoteMessage = async (msgId, proof, blockDetails) => {
         validateMessage.encodeABI());
 }
 
+const finalyzeRemoteMessage = async (msgId) => {
+    const finalyzeRemote = pipeContract.methods.finalyzeRemoteMessage(msgId);
+
+    await requestToContract(
+        process.env.ETH_TOKEN_SENDER, 
+        process.env.ETH_PIPE_CONTRACT_ADDRESS, 
+        process.env.ETH_SENDER_PRIVATE_KEY, 
+        finalyzeRemote.encodeABI());
+}
+
 module.exports = {
     requestToContract,
     getReceiptProof,
     pushRemoteMessage,
-    validateRemoteMessage
+    validateRemoteMessage,
+    finalyzeRemoteMessage
 }
