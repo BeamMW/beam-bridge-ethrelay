@@ -1,10 +1,7 @@
 require('dotenv').config();
 
 const beam = require('./utils/beam_utils.js');
-const ethash_utils = require('./utils/ethash_utils.js');
-const eth_utils = require('./utils/eth_utils.js');
 const Web3 = require('web3');
-const RLP = require('rlp');
 const fs = require('fs');
 
 const PipeContract = require('./utils/Pipe.json');
@@ -33,25 +30,16 @@ function saveSettings(value) {
 async function processEvent(event) {
     console.log(currentTime(), "Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
 
-    let block = await web3.eth.getBlock(event['blockNumber']);
-    //console.log('block = ', block);
-
     let pushRemoteTxID = await beam.bridgePushRemote(
         event["returnValues"]["msgId"],
-        event["returnValues"]["msgContractReceiver"],
-        event["returnValues"]["msgContractSender"],
         event["returnValues"]["amount"],
         event["returnValues"]["receiver"],
-        block.number,
-        block.timestamp);
+        event["returnValues"]["relayerFee"]);
 
     await beam.waitTx(pushRemoteTxID);
 
-    let finalizeMsgTxID = await beam.finalizeRemoteMsg(event["returnValues"]["msgId"]);
-
-    await beam.waitTx(finalizeMsgTxID);
     console.log(currentTime(), "The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
-    saveSettings(block.number + 1);
+    saveSettings(event['blockNumber'] + 1);
 }
 
 const {program} = require('commander');

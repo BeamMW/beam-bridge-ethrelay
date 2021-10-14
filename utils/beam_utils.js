@@ -72,26 +72,13 @@ const getBlockDetails = (height) => {
     )
 }
 
-const bridgePushRemote = (msgId, contractReceiver, contractSender, amount, receiver, blockHeight, blockTimestamp) => {
+const bridgePushRemote = (msgId, amount, receiver, relayerFee) => {
     let args = 'action=push_remote,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
-    args += ',contractReceiver=' + contractReceiver.substring(2);
-    args += ',contractSender=' + contractSender.substring(2);
     args += ',amount=' + amount;
-    args += ',receiver=' + receiver.substring(2);
-    args += ',height=' + blockHeight;
-    args += ',timestamp=' + blockTimestamp;
+    args += ',receiver=' + receiver;
+    args += ',relayerFee=' + relayerFee;
 
-    return baseShaderRequest(process.env.BEAM_PIPE_APP_PATH, args, (data) => {
-        let res = JSON.parse(data);
-        return res['result']['txid'];
-    });
-};
-
-const finalizeRemoteMsg = (msgId) => {
-    let args = 'action=finalize_remote_msg,cid=' + process.env.BEAM_BRIDGE_CID;
-    args += ',msgId=' + msgId;
-    
     return baseShaderRequest(process.env.BEAM_PIPE_APP_PATH, args, (data) => {
         let res = JSON.parse(data);
         return res['result']['txid'];
@@ -147,26 +134,8 @@ const getLocalMsg = (msgId) => {
             let output = JSON.parse(res['result']['output']);
             return {
                 'receiver': output['receiver'],
-                'contractSender': output['contractSender'],
-                'contractReceiver': output['contractReceiver'],
-                'amount': output['amount']
-            };
-        }
-    );
-};
-
-const getLocalMsgProof = (msgId) => {
-    let args = 'role=manager,action=local_msg_proof,cid=' + process.env.BEAM_BRIDGE_CID;
-    args += ',msgId=' + msgId;
-    return baseShaderRequest(
-        process.env.BEAM_PIPE_APP_PATH,
-        args,
-        (data) => {
-            let res = JSON.parse(data);
-            let output = JSON.parse(res['result']['output']);
-            return {
-                'proof': output['Proof']['nodes'],
-                'height': output['Proof']['height']
+                'amount': output['amount'],
+                'relayerFee': output['relayerFee']
             };
         }
     );
@@ -176,10 +145,8 @@ module.exports = {
     getStatusTx,
     getBlockDetails,
     bridgePushRemote,
-    finalizeRemoteMsg,
     getUserPubkey,
     waitTx,
     getLocalMsgCount,
-    getLocalMsg,
-    getLocalMsgProof
+    getLocalMsg
 }

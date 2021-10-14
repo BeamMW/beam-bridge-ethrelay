@@ -44,15 +44,7 @@ async function monitorBridge() {
         let localMsg = await beam.getLocalMsg(msgId);
         console.log(currentTime(), "Processing of a new message has started. Message ID - ", msgId);
 
-        // TODO: check another way to get blockDetails for msg
-        let msgProof = await beam.getLocalMsgProof(msgId);
-        let blockDetails = await beam.getBlockDetails(msgProof['height']);
-
-        await eth.pushRemoteMessage(msgId, localMsg['contractSender'], localMsg['contractReceiver'], blockDetails['height'],
-            blockDetails['timestamp'], localMsg['amount'], localMsg['receiver']);
-
-        // TODO: remove after tests
-        await eth.finalyzeRemoteMessage(msgId);
+        await eth.processRemoteMessage(msgId, localMsg['amount'], localMsg['receiver'], localMsg['relayerFee']);
 
         console.log(currentTime(), "The message was successfully transferred to the Ethereum. Message ID - ", msgId);
         saveSettings(++msgId);
@@ -63,6 +55,4 @@ async function monitorBridge() {
 
 (async () => {
     await monitorBridge();
-    // TODO: dispute or time
-    // TODO: finalyzeRemoteMessage
 })();

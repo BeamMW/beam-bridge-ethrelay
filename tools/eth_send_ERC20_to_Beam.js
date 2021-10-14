@@ -19,16 +19,17 @@ const pipeContract = new web3.eth.Contract(
 const {program} = require('commander');
 
 program.option('-a, --amount <number>', 'amount of tokens to send', 5000000000);
+program.option('-f, --fee <number>', 'relayer fee', 100000000);
 
 program.parse(process.argv);
 
 const options = program.opts();
 
-lockToken = async (value, pubkey) => {
+lockToken = async (amount, pubkey, relayerFee) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
     console.log('sender: ', process.env.ETH_TOKEN_SENDER)
-    const approveTx = tokenContract.methods.approve(process.env.ETH_PIPE_CONTRACT_ADDRESS, value);
-    const lockTx = pipeContract.methods.sendFunds(value, pubkey);
+    const approveTx = tokenContract.methods.approve(process.env.ETH_PIPE_CONTRACT_ADDRESS, amount + relayerFee);
+    const lockTx = pipeContract.methods.sendFunds(amount, relayerFee, pubkey);
 
     await eth_utils.requestToContract(
         process.env.ETH_TOKEN_SENDER, 
@@ -48,9 +49,10 @@ lockToken = async (value, pubkey) => {
 (async () => {
     console.log("Calling 'sendFunds' of Pipe contract:");
     const amount = options.amount;
+    const relayerFee = options.fee;
 
     // lock 'tokens' on Ethereum chain
-    let receipt = await lockToken(amount, process.env.BEAM_PUBLIC_KEY);
+    let receipt = await lockToken(amount, process.env.BEAM_PUBLIC_KEY, relayerFee);
 
     //console.log("TX receipt: ", receipt);
     console.log("'sendFunds' is finished.")
