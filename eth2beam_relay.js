@@ -4,9 +4,11 @@ const beam = require('./utils/beam_utils.js');
 const Web3 = require('web3');
 const fs = require('fs');
 const {program} = require('commander');
+const sqlite3 = require('sqlite3')
 
 const PipeContract = require('./utils/Pipe.json');
-const SETTINGS_FILE = './eth2beam_settings.json';
+
+const EVENTS_TABLE = 'events';
 
 let web3 = new Web3(new Web3.providers.WebsocketProvider(process.env.ETH_WEBSOCKET_PROVIDER));
 
@@ -20,16 +22,6 @@ function currentTime() {
     return "[" + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) + "] ";
 }
 
-function saveSettings(value) {
-    try {
-        fs.writeFileSync(SETTINGS_FILE, JSON.stringify({
-            'startBlock': value
-        }));
-    } catch (error) {
-        console.log(currentTime(), "Faield to save settings - ", error);
-    }
-}
-
 program.option('-b, --startBlock <number>', 'start block');
 program.parse(process.argv);
 
@@ -38,42 +30,89 @@ let startBlock = 0;
 
 if (options.startBlock !== undefined) {
     startBlock = options.startBlock;
-    saveSettings(startBlock);
 } else {
+    // load min unprocessed block
     try {
-        let data = fs.readFileSync(SETTINGS_FILE);
-        let obj = JSON.parse(data);
-        startBlock = obj['startBlock'];
+        // TODO
     } catch (error) {
-        console.log(currentTime(), "Failed to load settings - ", error);
+        console.log(currentTime(), "Failed to load startBlock - ", error);
     }
 }
 
-// TOOD: switch to DB?
-let events = new Map();
+// open the database
+let db = new sqlite3.Database('./eth2beam.db', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE);
+const createTableSql = `CREATE TABLE IF NOT EXISTS ${EVENTS_TABLE} 
+                        (block INTEGER NOT NULL
+                        ,txHash TEXT NOT NULL
+                        ,processed INTEGER NOT NULL DEFAULT 0
+                        ,body TEXT NOT NULL);`;
 
-function addEvent(event) {
-    if (!events.has(event['blockNumber'])) {
-        events.set(event['blockNumber'], new Map());
-    }
-    events.get(event['blockNumber']).set(event['transactionHash'], event);
+db.run(createTableSql);
+
+async function addEvent(event) {
+    return new Promise((resolve, reject) => {
+        const insertSql = `INSERT INTO ${EVENTS_TABLE} (block, txHash, body) VALUES(?,?,?);`;
+        db.run(insertSql, [event['blockNumber'], event['transactionHash'], JSON.stringify(event)],
+            function(err) {
+                if (err) {
+                    console.log("Failed to save event - " + err.message, ' Event: ', event);
+                    reject(err);
+                }
+                resolve({"lastID": this.lastID, "changes": this.changes});
+            }
+        );
+    });
 }
 
-function removeEvent(event) {
-    if (events.has(event['blockNumber'])) {
-        events.get(event['blockNumber']).delete(event['transactionHash']);
-    }
+async function removeEvent(event) {
+    return new Promise((resolve, reject) => {
+        const deleteSql = `DELETE FROM ${EVENTS_TABLE} WHERE block=${event['blockNumber']}
+                            AND txHash='${event['transactionHash']}';`;
+        db.run(deleteSql,
+            function(err) {
+                if (err) {
+                    console.log("Failed to delete event - " + err.message, ' Event: ', event);
+                    reject(err);
+                }
+                resolve({"lastID": this.lastID, "changes": this.changes});
+            }
+        );
+    });
+}
+
+async function onProcessedEvent(event) {
+    return new Promise((resolve, reject) => {
+        const updateSql = `UPDATE ${EVENTS_TABLE} SET processed=1 WHERE block=${event['blockNumber']} AND txHash='${event['transactionHash']}'`;
+        db.run(updateSql, function(err) {
+                if (err) {
+                    console.log("Failed to update event - " + err.message, ' Event: ', event);
+                    reject(err);
+                }
+                resolve({"lastID": this.lastID, "changes": this.changes});
+            }
+        );
+    });
 }
 
 async function onGotNewBlock(blockHeader) {
-    const minBlockNumber = blockHeader['number'] - process.env.ETH_MIN_CONFRIMATIONS;
-    for (const blockNumber of events.keys()) {
-        if (blockNumber <= minBlockNumber) {
-            for (const event of events.get(blockNumber).values()) {
-                processEvent(event);
-            }
-        }
+    let filter = async () => { return new Promise((resolve, reject) => {
+            const minBlockNumber = blockHeader['number'] - process.env.ETH_MIN_CONFRIMATIONS;
+            const sql = `SELECT body FROM ${EVENTS_TABLE} WHERE processed = 0 AND block <= ${minBlockNumber}`;
+
+            db.all(sql, (err, rows) => {
+                if (err) {
+                    reject(err);
+                }
+                resolve(rows);
+            });
+        });
     }
+    let rows = await filter();
+
+    rows.forEach(async (row) => {
+        const event = JSON.parse(row['body']);
+        await processEvent(event);
+    });
 }
 
 async function processEvent(event) {
@@ -88,7 +127,9 @@ async function processEvent(event) {
     await beam.waitTx(pushRemoteTxID);
 
     console.log(currentTime(), "The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
-    saveSettings(event['blockNumber'] + 1);
+    
+    // Update event state
+    await onProcessedEvent(event);
 }
 
 // subscribe to Pipe.NewLocalMessage
@@ -98,9 +139,9 @@ pipeContract.events.NewLocalMessage({
 .on("connected", function(subscriptionId) {
     console.log(currentTime(), 'Pipe.NewLocalMessage: successfully subcribed, subscription id: ', subscriptionId);
 })
-.on('data', function(event) {
+.on('data', async function(event) {
     console.log(currentTime(), "Got new event: ", event);
-    addEvent(event);
+    await addEvent(event);
 })
 .on('changed', function(event) {
     // remove event from local database
@@ -118,8 +159,8 @@ let newBlockSubscription = web3.eth.subscribe('newBlockHeaders')
 .on("connected", function(subscriptionId){
     console.log(currentTime(), 'newBlockHeaders: successfully subcribed, subscription id - ', subscriptionId);
 })
-.on("data", function(blockHeader){
-    onGotNewBlock(blockHeader);
+.on("data", async function(blockHeader){
+    await onGotNewBlock(blockHeader);
 })
 .on("error", console.error);
 

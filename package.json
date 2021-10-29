@@ -26,7 +26,8 @@
     "js-sha3": "^0.8.0",
     "keccak256": "^1.0.2",
     "rlp": "^2.2.6",
-    "web3": "^1.5.1"
+    "sqlite3": "^5.0.2",
+    "web3": "^1.6.0"
   },
   "resolutions": {
     "eth-object": "BeamMW/eth-object#0e5f245d4feaf037fed477f1797766a91d70b030"
