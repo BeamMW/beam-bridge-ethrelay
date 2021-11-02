@@ -72,6 +72,16 @@ const getBlockDetails = (height) => {
     )
 }
 
+const walletStatus = () => {
+    return baseRequest(
+        'wallet_status', 
+        {},
+        (data) => {
+            return JSON.parse(data)['result'];
+        }
+    )
+}
+
 const bridgePushRemote = (msgId, amount, receiver, relayerFee) => {
     let args = 'action=push_remote,cid=' + process.env.BEAM_BRIDGE_CID;
     args += ',msgId=' + msgId;
@@ -144,6 +154,7 @@ const getLocalMsg = (msgId) => {
 module.exports = {
     getStatusTx,
     getBlockDetails,
+    walletStatus,
     bridgePushRemote,
     getUserPubkey,
     waitTx,
