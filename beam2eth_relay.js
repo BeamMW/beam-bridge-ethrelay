@@ -37,18 +37,14 @@ if (options.msgId !== undefined) {
     } catch (e) { }
 }
 
-const UPDATING_PERIOD = 15 * 1000; // this value for test
-const CONFIRMATIONS_AMOUNT = 1; // this value for test
-let currentHeight = 0;
-
 async function requestHeight() {
     try {
         let status = await beam.walletStatus();
-        currentHeight = status['current_height'];
+        return status['current_height'];
     } catch {
         // output to log
     }
-    setTimeout(requestHeight, UPDATING_PERIOD);
+    return 0;
 }
 
 function isValidRelayerFee(relayerFee) {
@@ -56,14 +52,16 @@ function isValidRelayerFee(relayerFee) {
 }
 
 async function monitorBridge() {
-    if (currentHeight > 0 || currentHeight < CONFIRMATIONS_AMOUNT) {
+    let currentHeight = await requestHeight();
+
+    if (currentHeight > 0 || currentHeight < process.env.BEAM_CONFIRMATIONS) {
         try {
             let count = await beam.getLocalMsgCount();
             
             while (msgId <= count) {
                 let localMsg = await beam.getLocalMsg(msgId);
 
-                if (localMsg['height'] > currentHeight - CONFIRMATIONS_AMOUNT) {
+                if (localMsg['height'] > currentHeight - process.env.BEAM_CONFIRMATIONS) {
                     break;
                 }
 
@@ -83,10 +81,9 @@ async function monitorBridge() {
         }        
     }
 
-    setTimeout(monitorBridge, UPDATING_PERIOD);
+    setTimeout(monitorBridge, process.env.BEAM_BLOCK_CREATION_PERIOD);
 }
 
 (async () => {
-    await requestHeight();
     await monitorBridge();
 })();
