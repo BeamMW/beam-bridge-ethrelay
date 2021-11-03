@@ -1,4 +1,4 @@
-const Net = require('net');
+//const Net = require('net');
 const http = require('http');
 
 function baseRequest(method, params, processResult) {
@@ -25,6 +25,10 @@ function baseRequest(method, params, processResult) {
         }
 
         let request = http.request(options, callback);
+
+        request.on('error', (err)=> {
+            reject(err);
+        });
 
         request.write(JSON.stringify(
             {

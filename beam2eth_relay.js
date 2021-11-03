@@ -1,15 +1,15 @@
 require('dotenv').config();
 
-let fs = require('fs');
-
-function currentTime() {
-    return "[" + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) + "] ";
-}
-
 const beam = require('./utils/beam_utils.js');
 const eth = require('./utils/eth_utils.js');
 const {program} = require('commander');
 const SETTINGS_FILE = './beam2eth_settings.json';
+let fs = require('fs');
+let msgId = 1;
+
+function currentTime() {
+    return "[" + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) + "] ";
+}
 
 function saveSettings(value) {
     try {
@@ -19,30 +19,14 @@ function saveSettings(value) {
     } catch (e) {}
 }
 
-program.option('-m, --msgId <number>', 'start message id');
-
-program.parse(process.argv);
-
-const options = program.opts();
-let msgId = 1;
-
-if (options.msgId !== undefined) {
-    msgId = options.msgId;
-    saveSettings(msgId);
-} else {
-    try {
-        let data = fs.readFileSync(SETTINGS_FILE);
-        let obj = JSON.parse(data);
-        msgId = obj['startMsgId'];
-    } catch (e) { }
-}
-
 async function requestHeight() {
     try {
         let status = await beam.walletStatus();
         return status['current_height'];
-    } catch {
+    } catch (e) {
         // output to log
+        console.log('There is Beam wallet status problem');
+        console.log(e);
     }
     return 0;
 }
@@ -54,7 +38,7 @@ function isValidRelayerFee(relayerFee) {
 async function monitorBridge() {
     let currentHeight = await requestHeight();
 
-    if (currentHeight > 0 || currentHeight < process.env.BEAM_CONFIRMATIONS) {
+    if (currentHeight > 0 && currentHeight > process.env.BEAM_CONFIRMATIONS) {
         try {
             let count = await beam.getLocalMsgCount();
             
@@ -72,12 +56,13 @@ async function monitorBridge() {
 
                     console.log(currentTime(), "The message was successfully transferred to the Ethereum. Message ID - ", msgId);
                 } else {
-                    // output to log
+                    console.log(currentTime(), "Relayer fee is small! Message ID - ", msgId, ", realyerFee = ", localMsg['relayerFee']);
                 }
                 saveSettings(++msgId);
             }
-        } catch {
-            // output to log
+        } catch (e) {
+            console.log('Error:');
+            console.log(e);
         }        
     }
 
@@ -85,5 +70,21 @@ async function monitorBridge() {
 }
 
 (async () => {
+    program.option('-m, --msgId <number>', 'start message id');
+    program.parse(process.argv);
+
+    const options = program.opts();
+
+    if (options.msgId !== undefined) {
+        msgId = options.msgId;
+        saveSettings(msgId);
+    } else {
+        try {
+            let data = fs.readFileSync(SETTINGS_FILE);
+            let obj = JSON.parse(data);
+            msgId = obj['startMsgId'];
+        } catch (e) { }
+    }
+
     await monitorBridge();
 })();
