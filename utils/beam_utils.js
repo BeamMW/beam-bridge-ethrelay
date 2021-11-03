@@ -1,6 +1,13 @@
 //const Net = require('net');
 const http = require('http');
 
+const TX_STATUS_PENDING = 0;
+const TX_STATUS_INPROGRESS = 1;
+const TX_STATUS_CANCELED = 2;
+const TX_STATUS_COMPLETED = 3;
+const TX_STATUS_FAILED = 4;
+const TX_STATUS_REGISTERING = 5;
+
 function baseRequest(method, params, processResult) {
     return new Promise((resolve, reject) => {
         let accumulated = '';
@@ -119,7 +126,9 @@ const waitTx = async (txId) => {
         let result = await getStatusTx(txId);
         let status = result['result']['status'];
 
-        if (status == 3 || status == 4) break;
+        if (status == TX_STATUS_COMPLETED || status == TX_STATUS_FAILED) {
+            return status;
+        }
         await sleep(15000);
     } while(true)
 }
@@ -163,5 +172,7 @@ module.exports = {
     getUserPubkey,
     waitTx,
     getLocalMsgCount,
-    getLocalMsg
+    getLocalMsg,
+    TX_STATUS_COMPLETED,
+    TX_STATUS_FAILED
 }
