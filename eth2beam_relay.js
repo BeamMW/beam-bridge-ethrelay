@@ -58,24 +58,33 @@ async function onGotNewBlock(blockHeader) {
 async function processEvent(event) {
     logger.info("Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
 
-    let pushRemoteTxID = await beam.bridgePushRemote(
-        event["returnValues"]["msgId"],
-        event["returnValues"]["amount"],
-        event["returnValues"]["receiver"],
-        event["returnValues"]["relayerFee"]);
+    try {
+        throw new Error('Unexpected result of the beam.bridgePushRemote.')
+        var pushRemoteTxID = await beam.bridgePushRemote(
+            event["returnValues"]["msgId"],
+            event["returnValues"]["amount"],
+            event["returnValues"]["receiver"],
+            event["returnValues"]["relayerFee"]);
 
-    // TODO: pushRemoteTxID
-    const txStatus = await beam.waitTx(pushRemoteTxID);
-    
-    if (beam.TX_STATUS_FAILED == txStatus) {
-        logger.error(`Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}, txID - ${pushRemoteTxID}.`);
-        return;
+        if (!pushRemoteTxID) {
+            throw new Error('Unexpected result of the beam.bridgePushRemote.')
+        }
+
+        const txStatus = await beam.waitTx(pushRemoteTxID);
+        
+        if (beam.TX_STATUS_FAILED == txStatus) {
+            throw new Error('Invalid TX status.')
+        }
+
+        logger.info("The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
+        
+        // Update event state
+        await onProcessedEvent(event);
+    } catch (err) {
+        let txIDstr = pushRemoteTxID ? `, txID - ${pushRemoteTxID}` : '';
+        logger.error(`Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}${txIDstr}. ${err}`);
+        throw err;
     }
-
-    logger.info("The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
-    
-    // Update event state
-    await onProcessedEvent(event);
 }
 
 async function getMinUnprocessedBlock() {
