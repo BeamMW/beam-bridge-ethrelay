@@ -32,14 +32,18 @@ lockToken = async (amount, pubkey, relayerFee) => {
     const lockTx = pipeContract.methods.sendFunds(amount, relayerFee, pubkey);
 
     await eth_utils.requestToContract(
-        process.env.ETH_TOKEN_SENDER, 
-        process.env.ETH_TOKEN_CONTRACT, 
-        process.env.ETH_SENDER_PRIVATE_KEY, 
+        process.env.ETH_TOKEN_SENDER,
+        process.env.ETH_TOKEN_CONTRACT,
+        process.env.ETH_SENDER_PRIVATE_KEY,
+        // TODO roman.strilets change this parameter
+        process.env.PUSH_REMOTE_GAS_LIMIT,
         approveTx.encodeABI());
     let lockTxReceipt = await eth_utils.requestToContract(
-        process.env.ETH_TOKEN_SENDER, 
+        process.env.ETH_TOKEN_SENDER,
         process.env.ETH_PIPE_CONTRACT_ADDRESS,
-        process.env.ETH_SENDER_PRIVATE_KEY, 
+        process.env.ETH_SENDER_PRIVATE_KEY,
+        // TODO roman.strilets change this parameter
+        process.env.PUSH_REMOTE_GAS_LIMIT,
         lockTx.encodeABI());
 
     //console.log(lockTxReceipt);

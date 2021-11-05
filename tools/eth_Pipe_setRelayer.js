@@ -15,9 +15,11 @@ const setRelayer = async (relayerAddress) => {
     const setRemoteTx = pipeContract.methods.setRelayer(relayerAddress);
 
     let receipt = await eth_utils.requestToContract(
-        process.env.ETH_TOKEN_SENDER, 
-        process.env.ETH_PIPE_CONTRACT_ADDRESS, 
-        process.env.ETH_SENDER_PRIVATE_KEY, 
+        process.env.ETH_TOKEN_SENDER,
+        process.env.ETH_PIPE_CONTRACT_ADDRESS,
+        process.env.ETH_SENDER_PRIVATE_KEY,
+        // TODO roman.strilets change this parameter 
+        process.env.PUSH_REMOTE_GAS_LIMIT,
         setRemoteTx.encodeABI());
     
     return receipt;
