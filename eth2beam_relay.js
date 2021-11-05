@@ -101,7 +101,8 @@ async function getMinUnprocessedBlock() {
                             (block INTEGER NOT NULL
                             ,txHash TEXT NOT NULL
                             ,processed INTEGER NOT NULL DEFAULT 0
-                            ,body TEXT NOT NULL);`;
+                            ,body TEXT NOT NULL,
+                            UNIQUE(block,txHash));`;
 
     await db.exec(createTableSql);
 
