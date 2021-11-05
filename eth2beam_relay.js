@@ -6,27 +6,19 @@ const fs = require('fs');
 const {program} = require('commander');
 const sqlite3 = require('sqlite3')
 const sqlite = require('sqlite');
+const logger = require('./logger.js')
 
 const PipeContract = require('./utils/Pipe.json');
 
 const EVENTS_TABLE = 'events';
 let db = undefined;
 
-process.on('uncaughtException', function (error) {
-    console.log(error.stack);
-});
-
-// TODO roman.strilets 
-function currentTime() {
-    return "[" + (new Date()).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'}) + "] ";
-}
-
 async function addEvent(event) {
     const insertSql = `INSERT INTO ${EVENTS_TABLE} (block, txHash, body) VALUES(?,?,?);`;
     try {
         return await db.run(insertSql, [event['blockNumber'], event['transactionHash'], JSON.stringify(event)]);
     } catch (err) {
-        console.log("Failed to save event - " + err.message, ' Event: ', event);
+        logger.error("Failed to save event - " + err.message, ' Event: ', event);
         throw err;
     }
 }
@@ -36,7 +28,7 @@ async function removeEvent(event) {
     try {
         return await db.run(deleteSql);
     } catch (err) {
-        console.log("Failed to delete event - " + err.message, ' Event: ', event);
+        logger.error("Failed to delete event - " + err.message, ' Event: ', event);
         throw err;
     }
 }
@@ -46,7 +38,7 @@ async function onProcessedEvent(event) {
     try {
        return await db.run(updateSql);
     } catch (err) {
-        console.log("Failed to update event - " + err.message, ' Event: ', event);
+        logger.error("Failed to update event - " + err.message, ' Event: ', event);
         throw err;
     }
 }
@@ -64,7 +56,7 @@ async function onGotNewBlock(blockHeader) {
 }
 
 async function processEvent(event) {
-    console.log(currentTime(), "Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
+    logger.info("Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
 
     let pushRemoteTxID = await beam.bridgePushRemote(
         event["returnValues"]["msgId"],
@@ -72,14 +64,15 @@ async function processEvent(event) {
         event["returnValues"]["receiver"],
         event["returnValues"]["relayerFee"]);
 
+    // TODO: pushRemoteTxID
     const txStatus = await beam.waitTx(pushRemoteTxID);
     
     if (beam.TX_STATUS_FAILED == txStatus) {
-        console.log(currentTime(), `Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}, txID - ${pushRemoteTxID}.`);
+        logger.error(`Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}, txID - ${pushRemoteTxID}.`);
         return;
     }
 
-    console.log(currentTime(), "The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
+    logger.info("The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
     
     // Update event state
     await onProcessedEvent(event);
@@ -91,7 +84,7 @@ async function getMinUnprocessedBlock() {
         const row = await db.get(sql);
         return row['block'];
     } catch (err) {
-        console.log(currentTime(), "Failed to load min unprocessed block - " + err.message);
+        logger.error("Failed to load min unprocessed block - " + err.message);
         throw err;
     }
 }
@@ -124,7 +117,7 @@ async function getMinUnprocessedBlock() {
         try {
             startBlock = await getMinUnprocessedBlock();
         } catch (error) {
-            console.log(currentTime(), "Failed to load startBlock - ", error);
+            logger.error("Failed to load startBlock - ", error);
         }
     }
 
@@ -139,37 +132,37 @@ async function getMinUnprocessedBlock() {
         fromBlock: startBlock
     }, function(error, event) { /*console.log(event);*/ })
     .on("connected", function(subscriptionId) {
-        console.log(currentTime(), 'Pipe.NewLocalMessage: successfully subcribed, subscription id: ', subscriptionId);
+        logger.info('Pipe.NewLocalMessage: successfully subcribed, subscription id: ', subscriptionId);
     })
     .on('data', async function(event) {
-        console.log(currentTime(), "Got new event: ", event);
+        logger.info("Got new event: ", event);
         await addEvent(event);
     })
     .on('changed', async function(event) {
         // remove event from local database
-        console.log(currentTime(), "Event changed! ", event);
+        logger.info("Event changed! ", event);
         await removeEvent(event);
     })
     .on('error', function(error, receipt) { // If the transaction was rejected by the network with a receipt, the second parameter will be the receipt.
-        console.log("Error: ", error);
+        logger.error("Error: ", error);
         if (receipt) {
-            console.log("receipt: ", receipt);
+            logger.info("receipt: ", receipt);
         }
     });
     
     let newBlockSubscription = web3.eth.subscribe('newBlockHeaders')
     .on("connected", function(subscriptionId){
-        console.log(currentTime(), 'newBlockHeaders: successfully subcribed, subscription id - ', subscriptionId);
+        logger.info('newBlockHeaders: successfully subcribed, subscription id - ', subscriptionId);
     })
     .on("data", async function(blockHeader){
         await onGotNewBlock(blockHeader);
     })
-    .on("error", console.error);
+    .on("error", logger.error);
     
     // // unsubscribes the newBlockSubscription
     // newBlockSubscription.unsubscribe(function(error, success){
     //     if (success) {
-    //         console.log('Successfully unsubscribed!');
+    //         logger.info('Successfully unsubscribed!');
     //     }
     // });
 })();
