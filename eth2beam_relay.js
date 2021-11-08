@@ -59,7 +59,6 @@ async function processEvent(event) {
     logger.info("Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
 
     try {
-        throw new Error('Unexpected result of the beam.bridgePushRemote.')
         var pushRemoteTxID = await beam.bridgePushRemote(
             event["returnValues"]["msgId"],
             event["returnValues"]["amount"],
