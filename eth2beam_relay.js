@@ -49,10 +49,10 @@ async function onGotNewBlock(blockHeader) {
     let rows = await db.all(filterSql);
 
     // TODO
-    rows.forEach(async (row) => {
-        const event = JSON.parse(row['body']);
+    for (const item in rows) {
+        const event = JSON.parse(rows[item]['body']);
         await processEvent(event);
-    });
+    }
 }
 
 async function processEvent(event) {
