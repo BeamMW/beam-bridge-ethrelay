@@ -59,29 +59,34 @@ async function processEvent(event) {
     logger.info("Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
 
     try {
-        var pushRemoteTxID = await beam.bridgePushRemote(
+        var result = await beam.bridgePushRemote(
             event["returnValues"]["msgId"],
             event["returnValues"]["amount"],
             event["returnValues"]["receiver"],
             event["returnValues"]["relayerFee"]);
 
-        if (!pushRemoteTxID) {
+        if (!result) {
             throw new Error('Unexpected result of the beam.bridgePushRemote.')
         }
 
-        const txStatus = await beam.waitTx(pushRemoteTxID);
+        if (result.isExist) {
+            logger.info("The message is exist in the Beam. Message ID - ", event["returnValues"]["msgId"]);
+        } else {
+            const txStatus = await beam.waitTx(result.txid);
         
-        if (beam.TX_STATUS_FAILED == txStatus) {
-            throw new Error('Invalid TX status.')
-        }
+            if (beam.TX_STATUS_FAILED == txStatus) {
+                throw new Error('Invalid TX status.')
+            }
 
-        logger.info("The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
+            logger.info("The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
+        }
         
         // Update event state
         await onProcessedEvent(event);
     } catch (err) {
-        let txIDstr = pushRemoteTxID ? `, txID - ${pushRemoteTxID}` : '';
-        logger.error(`Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}${txIDstr}. ${err}`);
+        // TODO roman.strilets change this code
+        // let txIDstr = pushRemoteTxID ? `, txID - ${pushRemoteTxID}` : '';
+        logger.error(`Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}. ${err}`);
         throw err;
     }
 }

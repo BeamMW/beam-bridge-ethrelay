@@ -102,7 +102,23 @@ const bridgePushRemote = (msgId, amount, receiver, relayerFee) => {
 
     return baseShaderRequest(process.env.BEAM_PIPE_APP_PATH, args, (data) => {
         let res = JSON.parse(data);
-        return res['result']['txid'];
+        if (res.hasOwnProperty('error')) {
+            // TODO roman.strilets need to check
+            throw new Error(data);
+        }
+
+        let output = JSON.parse(res['result']['output']);
+        let isExist = false;
+        if (output.hasOwnProperty('error')) {
+            if (output['error'] == 'msg is exist') {
+                isExist = true;
+            } else {
+                // TODO roman.strilets need to check
+                throw new Error(output['error']);
+            }
+        }
+
+        return {isExist: isExist, txid: res['result']['txid']};
     });
 };
 
