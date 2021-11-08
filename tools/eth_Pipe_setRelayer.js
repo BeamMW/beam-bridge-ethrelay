@@ -18,9 +18,9 @@ const setRelayer = async (relayerAddress) => {
         process.env.ETH_TOKEN_SENDER,
         process.env.ETH_PIPE_CONTRACT_ADDRESS,
         process.env.ETH_SENDER_PRIVATE_KEY,
+        setRemoteTx.encodeABI(),
         // TODO roman.strilets change this parameter 
-        process.env.PUSH_REMOTE_GAS_LIMIT,
-        setRemoteTx.encodeABI());
+        process.env.PUSH_REMOTE_GAS_LIMIT);
     
     return receipt;
 }
