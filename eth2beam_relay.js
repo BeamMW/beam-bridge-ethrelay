@@ -108,7 +108,7 @@ async function getStartBlockFromDB() {
         }
         return row['block'];
     } catch (err) {
-        logger.error("Failed to load min unprocessed block - " + err.message);
+        logger.error("Failed to get start block from DB - " + err.message);
         throw err;
     }
 }
