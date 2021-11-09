@@ -66,7 +66,13 @@ const getStatusTx = (txId) => {
             txId: txId
         },
         (data) => {
-            return JSON.parse(data);
+            let json = JSON.parse(data);
+
+            if (json.hasOwnProperty('error')) {
+                throw new Error(data);
+            }
+
+            return json;
         }
     )
 }
@@ -78,7 +84,13 @@ const getBlockDetails = (height) => {
             height: height
         },
         (data) => {
-            return JSON.parse(data)['result'];
+            let json = JSON.parse(data);
+
+            if (json.hasOwnProperty('error')) {
+                throw new Error(data);
+            }
+
+            return json['result'];
         }
     )
 }
@@ -88,7 +100,13 @@ const walletStatus = () => {
         'wallet_status', 
         {},
         (data) => {
-            return JSON.parse(data)['result'];
+            let json = JSON.parse(data);
+
+            if (json.hasOwnProperty('error')) {
+                throw new Error(data);
+            }
+
+            return json['result'];
         }
     )
 }
@@ -127,8 +145,13 @@ const getUserPubkey = () => {
         process.env.BEAM_PIPE_APP_PATH,
         'role=user,action=get_pk,cid=' + process.env.BEAM_BRIDGE_CID,
         (data) => {
-            let res = JSON.parse(data);
-            let output = JSON.parse(res['result']['output']);
+            let json = JSON.parse(data);
+
+            if (json.hasOwnProperty('error')) {
+                throw new Error(data);
+            }
+
+            let output = JSON.parse(json['result']['output']);
             return output['pk'];
         }
     );
@@ -139,6 +162,7 @@ const waitTx = async (txId) => {
         return new Promise(resolve => setTimeout(resolve, milliseconds))
     }
     do {
+        // TODO roman.strilets maybe should process exception
         let result = await getStatusTx(txId);
         let status = result['result']['status'];
 
@@ -155,8 +179,13 @@ const getLocalMsgCount = () => {
         process.env.BEAM_PIPE_APP_PATH,
         args,
         (data) => {
-            let res = JSON.parse(data);
-            let output = JSON.parse(res['result']['output']);
+            let json = JSON.parse(data);
+
+            if (json.hasOwnProperty('error')) {
+                throw new Error(data);
+            }
+
+            let output = JSON.parse(json['result']['output']);
             return output['count'];
         }
     );
@@ -169,8 +198,13 @@ const getLocalMsg = (msgId) => {
         process.env.BEAM_PIPE_APP_PATH,
         args,
         (data) => {
-            let res = JSON.parse(data);
-            let output = JSON.parse(res['result']['output']);
+            let json = JSON.parse(data);
+
+            if (json.hasOwnProperty('error')) {
+                throw new Error(data);
+            }
+
+            let output = JSON.parse(json['result']['output']);
             return {
                 'receiver': output['receiver'],
                 'amount': output['amount'],
