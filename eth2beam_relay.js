@@ -19,6 +19,9 @@ async function addEvent(event) {
     try {
         return await db.run(insertSql, [event['blockNumber'], event['transactionHash'], JSON.stringify(event)]);
     } catch (err) {
+        // ignore if event is exist in db
+        if (err.hasOwnProperty('errno') && err.errno == 19)
+            return;
         logger.error("Failed to save event - " + err.message, ' Event: ', event);
         throw err;
     }
