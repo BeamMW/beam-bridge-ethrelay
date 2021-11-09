@@ -12,6 +12,7 @@ const PipeContract = require('./utils/Pipe.json');
 
 const EVENTS_TABLE = 'events';
 let db = undefined;
+let eventsInProgress = new Set();
 
 async function addEvent(event) {
     const insertSql = `INSERT INTO ${EVENTS_TABLE} (block, txHash, body) VALUES(?,?,?);`;
@@ -51,6 +52,9 @@ async function onGotNewBlock(blockHeader) {
     // TODO
     for (const item of rows) {
         const event = JSON.parse(item['body']);
+        if (eventsInProgress.has(event["returnValues"]["msgId"])) {
+            continue;
+        }
         await processEvent(event);
     }
 }
@@ -58,6 +62,7 @@ async function onGotNewBlock(blockHeader) {
 async function processEvent(event) {
     logger.info("Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
 
+    eventsInProgress.add(event["returnValues"]["msgId"]);
     try {
         var result = await beam.bridgePushRemote(
             event["returnValues"]["msgId"],
@@ -88,6 +93,8 @@ async function processEvent(event) {
         // let txIDstr = pushRemoteTxID ? `, txID - ${pushRemoteTxID}` : '';
         logger.error(`Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}. ${err}`);
         throw err;
+    } finally {
+        eventsInProgress.delete(event["returnValues"]["msgId"]);
     }
 }
 
