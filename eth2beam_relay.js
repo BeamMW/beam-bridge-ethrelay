@@ -98,10 +98,14 @@ async function processEvent(event) {
     }
 }
 
-async function getMinUnprocessedBlock() {
+async function getStartBlockFromDB() {
     try {
-        const sql = `SELECT block FROM ${EVENTS_TABLE} WHERE processed=0 ORDER BY block ASC LIMIT 1;`;
-        const row = await db.get(sql);
+        const minUnprocessedBlockSql = `SELECT block FROM ${EVENTS_TABLE} WHERE processed=0 ORDER BY block ASC LIMIT 1;`;
+        let row = await db.get(minUnprocessedBlockSql);
+        if (!row) {
+            const maxProcessedBlockSql = `SELECT block FROM ${EVENTS_TABLE} WHERE processed=1 ORDER BY block DESC LIMIT 1;`;
+            row = await db.get(maxProcessedBlockSql);
+        }
         return row['block'];
     } catch (err) {
         logger.error("Failed to load min unprocessed block - " + err.message);
@@ -136,7 +140,7 @@ async function getMinUnprocessedBlock() {
         startBlock = options.startBlock;
     } else {
         try {
-            startBlock = await getMinUnprocessedBlock();
+            startBlock = await getStartBlockFromDB();
         } catch (error) {
             logger.error("Failed to load startBlock - ", error);
         }
