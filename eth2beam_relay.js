@@ -49,8 +49,8 @@ async function onGotNewBlock(blockHeader) {
     let rows = await db.all(filterSql);
 
     // TODO
-    for (const item in rows) {
-        const event = JSON.parse(rows[item]['body']);
+    for (const item of rows) {
+        const event = JSON.parse(item['body']);
         await processEvent(event);
     }
 }
