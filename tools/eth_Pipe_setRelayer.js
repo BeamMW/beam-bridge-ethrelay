@@ -2,7 +2,7 @@ require('dotenv').config();
 
 const Web3 = require('web3');
 const eth_utils = require('./../utils/eth_utils.js');
-const PipeContract = require('./../utils/Pipe.json');
+const PipeContract = require('./../utils/EthPipeContractABI.js');
 const {program} = require('commander');
 
 let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));

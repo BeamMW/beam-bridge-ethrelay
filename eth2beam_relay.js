@@ -8,7 +8,7 @@ const sqlite3 = require('sqlite3')
 const sqlite = require('sqlite');
 const logger = require('./logger.js')
 
-const PipeContract = require('./utils/Pipe.json');
+const PipeContract = require('./utils/EthPipeContractABI.js');
 
 const EVENTS_TABLE = 'events';
 let db = undefined;

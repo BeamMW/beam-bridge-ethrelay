@@ -3,7 +3,7 @@ require('dotenv').config();
 const beam = require('./../utils/beam_utils.js');
 const eth_utils = require('./../utils/eth_utils.js');
 const Web3 = require('web3');
-const PipeContract = require('./../utils/Pipe.json');
+const PipeContract = require('./../utils/EthPipeContractABI.js');
 const ERC20Abi = require("human-standard-token-abi");
 
 let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
