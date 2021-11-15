@@ -119,7 +119,7 @@ async function getStartBlockFromDB() {
 (async () => {
     // open the database
     db = await sqlite.open({
-        filename: './eth2beam.db',
+        filename: process.env.ETH2BEAM_DB_PATH,
         mode: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
         driver: sqlite3.Database
     });

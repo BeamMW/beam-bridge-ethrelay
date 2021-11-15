@@ -3,7 +3,7 @@ require('dotenv').config();
 const beam = require('./utils/beam_utils.js');
 const eth = require('./utils/eth_utils.js');
 const {program} = require('commander');
-const SETTINGS_FILE = './beam2eth_settings.json';
+
 let fs = require('fs');
 let msgId = 1;
 
@@ -13,7 +13,7 @@ function currentTime() {
 
 function saveSettings(value) {
     try {
-        fs.writeFileSync(SETTINGS_FILE, JSON.stringify({
+        fs.writeFileSync(process.env.BEAM2ETH_SETTINGS_FILE, JSON.stringify({
             'startMsgId': value
         }));
     } catch (e) {}
@@ -80,7 +80,7 @@ async function monitorBridge() {
         saveSettings(msgId);
     } else {
         try {
-            let data = fs.readFileSync(SETTINGS_FILE);
+            let data = fs.readFileSync(process.env.BEAM2ETH_SETTINGS_FILE);
             let obj = JSON.parse(data);
             msgId = obj['startMsgId'];
         } catch (e) { }
