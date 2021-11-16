@@ -15,7 +15,7 @@ const setRelayer = async (relayerAddress) => {
     const setRemoteTx = pipeContract.methods.setRelayer(relayerAddress);
 
     let receipt = await eth_utils.requestToContract(
-        process.env.ETH_TOKEN_SENDER,
+        process.env.ETH_SENDER,
         process.env.ETH_PIPE_CONTRACT_ADDRESS,
         process.env.ETH_SENDER_PRIVATE_KEY,
         setRemoteTx.encodeABI(),

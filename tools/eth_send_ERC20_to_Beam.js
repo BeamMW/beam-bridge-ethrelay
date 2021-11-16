@@ -1,6 +1,5 @@
 require('dotenv').config();
 
-const beam = require('./../utils/beam_utils.js');
 const eth_utils = require('./../utils/eth_utils.js');
 const Web3 = require('web3');
 const PipeContract = require('./../utils/EthPipeContractABI.js');
@@ -27,19 +26,19 @@ const options = program.opts();
 
 lockToken = async (amount, pubkey, relayerFee) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
-    console.log('sender: ', process.env.ETH_TOKEN_SENDER)
+    console.log('sender: ', process.env.ETH_SENDER)
     const approveTx = tokenContract.methods.approve(process.env.ETH_PIPE_CONTRACT_ADDRESS, amount + relayerFee);
     const lockTx = pipeContract.methods.sendFunds(amount, relayerFee, pubkey);
 
     await eth_utils.requestToContract(
-        process.env.ETH_TOKEN_SENDER,
+        process.env.ETH_SENDER,
         process.env.ETH_TOKEN_CONTRACT,
         process.env.ETH_SENDER_PRIVATE_KEY,
         // TODO roman.strilets change this parameter
         process.env.PUSH_REMOTE_GAS_LIMIT,
         approveTx.encodeABI());
     let lockTxReceipt = await eth_utils.requestToContract(
-        process.env.ETH_TOKEN_SENDER,
+        process.env.ETH_SENDER,
         process.env.ETH_PIPE_CONTRACT_ADDRESS,
         process.env.ETH_SENDER_PRIVATE_KEY,
         // TODO roman.strilets change this parameter
