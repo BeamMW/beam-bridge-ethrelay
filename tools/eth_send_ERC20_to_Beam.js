@@ -34,9 +34,9 @@ lockToken = async (amount, pubkey, relayerFee) => {
         process.env.ETH_SENDER,
         process.env.ETH_TOKEN_CONTRACT,
         process.env.ETH_SENDER_PRIVATE_KEY,
+        approveTx.encodeABI(),
         // TODO roman.strilets change this parameter
-        process.env.PUSH_REMOTE_GAS_LIMIT,
-        approveTx.encodeABI());
+        process.env.PUSH_REMOTE_GAS_LIMIT);
     let lockTxReceipt = await eth_utils.requestToContract(
         process.env.ETH_SENDER,
         process.env.ETH_PIPE_CONTRACT_ADDRESS,
