@@ -7,13 +7,13 @@ const pipeContract = new web3.eth.Contract(
     process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
-const requestToContract = async (sender, receiver, privateKey, abi, gasLimit, value=0) => {
+const requestToContract = async (sender, receiver, privateKey, abi, gasLimit, total=0) => {
     let nonce = await web3.eth.getTransactionCount(sender);
     let signedTx = await web3.eth.accounts.signTransaction({
         from: sender,
         to: receiver,
         data: abi,
-        value: value,
+        value: total,
         gas: gasLimit,
         nonce: nonce,
     }, privateKey);

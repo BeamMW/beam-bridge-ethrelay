@@ -41,9 +41,9 @@ lockToken = async (amount, pubkey, relayerFee) => {
         process.env.ETH_SENDER,
         process.env.ETH_PIPE_CONTRACT_ADDRESS,
         process.env.ETH_SENDER_PRIVATE_KEY,
+        lockTx.encodeABI(),
         // TODO roman.strilets change this parameter
-        process.env.PUSH_REMOTE_GAS_LIMIT,
-        lockTx.encodeABI());
+        process.env.PUSH_REMOTE_GAS_LIMIT);
 
     //console.log(lockTxReceipt);
     return lockTxReceipt;
