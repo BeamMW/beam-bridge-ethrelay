@@ -215,6 +215,7 @@ const getLocalMsg = (msgId) => {
 };
 
 module.exports = {
+    baseShaderRequest,
     getStatusTx,
     getBlockDetails,
     walletStatus,
