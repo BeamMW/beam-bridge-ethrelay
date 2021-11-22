@@ -49,14 +49,23 @@ async function monitorBridge() {
                     break;
                 }
 
-                if (isValidRelayerFee(localMsg['relayerFee'])) {
+                let amount = localMsg['amount'].toString();
+                let relayerFee = localMsg['relayerFee'].toString();
+
+                if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
+                    const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
+                    amount = amount.padEnd(amount.length + diff, '0');
+                    relayerFee = relayerFee.padEnd(relayerFee.length + diff, '0');
+                }
+
+                if (isValidRelayerFee(relayerFee)) {
                     console.log(currentTime(), "Processing of a new message has started. Message ID - ", msgId);
 
-                    await eth.processRemoteMessage(msgId, localMsg['amount'], localMsg['receiver'], localMsg['relayerFee']);
+                    await eth.processRemoteMessage(msgId, amount, localMsg['receiver'], relayerFee);
 
                     console.log(currentTime(), "The message was successfully transferred to the Ethereum. Message ID - ", msgId);
                 } else {
-                    console.log(currentTime(), "Relayer fee is small! Message ID - ", msgId, ", realyerFee = ", localMsg['relayerFee']);
+                    console.log(currentTime(), "Relayer fee is small! Message ID - ", msgId, ", realyerFee = ", relayerFee);
                 }
                 saveSettings(++msgId);
             }

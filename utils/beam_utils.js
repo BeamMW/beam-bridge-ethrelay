@@ -8,6 +8,8 @@ const TX_STATUS_COMPLETED = 3;
 const TX_STATUS_FAILED = 4;
 const TX_STATUS_REGISTERING = 5;
 
+const BEAM_MAX_DECIMALS = 8;
+
 function baseRequest(method, params, processResult) {
     return new Promise((resolve, reject) => {
         let accumulated = '';
@@ -225,5 +227,6 @@ module.exports = {
     getLocalMsgCount,
     getLocalMsg,
     TX_STATUS_COMPLETED,
-    TX_STATUS_FAILED
+    TX_STATUS_FAILED,
+    BEAM_MAX_DECIMALS
 }

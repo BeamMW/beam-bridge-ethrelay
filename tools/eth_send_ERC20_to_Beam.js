@@ -17,8 +17,8 @@ const pipeContract = new web3.eth.Contract(
 
 const {program} = require('commander');
 
-program.option('-a, --amount <number>', 'amount of tokens to send', 5000000000);
-program.option('-f, --fee <number>', 'relayer fee', 100000000);
+program.option('-a, --amount <number>', 'amount of tokens to send', 200);
+program.option('-f, --fee <number>', 'relayer fee', 10);
 
 program.parse(process.argv);
 
@@ -51,8 +51,9 @@ lockToken = async (amount, pubkey, relayerFee) => {
 
 (async () => {
     console.log("Calling 'sendFunds' of Pipe contract:");
-    const amount = options.amount;
-    const relayerFee = options.fee;
+    const multiplier = BigInt(Math.pow(10, process.env.ETH_SIDE_DECIMALS));
+    const amount = BigInt(options.amount) * multiplier;
+    const relayerFee = BigInt(options.fee) * multiplier;
 
     // lock 'tokens' on Ethereum chain
     let receipt = await lockToken(amount, process.env.BEAM_PUBLIC_KEY, relayerFee);

@@ -67,11 +67,26 @@ async function processEvent(event) {
 
     eventsInProgress.add(event["returnValues"]["msgId"]);
     try {
+        let amount = event["returnValues"]["amount"];
+        let relayerFee = event["returnValues"]["relayerFee"];
+
+        if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
+            const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
+            // check that amount contains this count of zeros at the end
+            let endedStr = "0".repeat(diff);
+            if (!amount.endsWith(endedStr) || !relayerFee.endsWith(endedStr)) {
+                throw new Error(`Unexpected amounts. Message ID - ${event["returnValues"]["msgId"]}`);
+            }
+            // remove zeros
+            amount = amount.slice(0, -diff);
+            relayerFee = relayerFee.slice(0, -diff);
+        }
+
         var result = await beam.bridgePushRemote(
             event["returnValues"]["msgId"],
-            event["returnValues"]["amount"],
+            amount,
             event["returnValues"]["receiver"],
-            event["returnValues"]["relayerFee"]);
+            relayerFee);
 
         if (!result) {
             throw new Error('Unexpected result of the beam.bridgePushRemote.')
