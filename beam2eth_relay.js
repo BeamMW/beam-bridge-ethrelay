@@ -61,7 +61,7 @@ async function monitorBridge() {
                     // check that amount contains this count of zeros at the end
                     let endedStr = "0".repeat(diff);
                     if (!amount.endsWith(endedStr) || !relayerFee.endsWith(endedStr)) {
-                        throw new Error(`Unexpected amounts. Message ID - ${event["returnValues"]["msgId"]}`);
+                        throw new Error(`Unexpected amounts. Message ID - ${msgId}`);
                     }
                     // remove zeros
                     amount = amount.slice(0, -diff);
