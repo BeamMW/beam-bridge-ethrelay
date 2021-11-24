@@ -1,6 +1,7 @@
 require('dotenv').config();
 let exec = require('child_process').execFile;
 const beam = require('./../utils/beam_utils.js');
+const {program} = require('commander');
 
 /**
  * Function to execute exe
@@ -19,10 +20,9 @@ function execute(fileName, params, path) {
     return promise;
 }
 
-const TOKEN_NAME = 'EPRST';
 const WORK_DIR = 'd:/work/beam/out/build/x64-Debug/wallet/cli/';
 const WALLET_CLI_PATH = "d:/work/beam/out/build/x64-Debug/wallet/cli/beam-wallet-masternet.exe";
-const WALLET_DB_PATH = 'd:/work/beam_wallets/bridges/Jim/6.2.11693.4616/wallet.db';
+const WALLET_DB_PATH = 'd:/work/beam_wallets/bridges/Jim/6.2.12131.4799/wallet.db';
 const TOKEN_APP_PATH = 'd:/work/bridge/beam-bridge-pipe/shaders/token_app.wasm';
 const TOKEN_CONTRACT_PATH = 'd:/work/bridge/beam-bridge-pipe/shaders/token_contract.wasm'
 const API_TOKEN_APP_PATH = "/home/beam/data/token_app.wasm";
@@ -186,9 +186,14 @@ async function setPipeRelayer(pipeCID, relayer) {
 }
 
 (async () => {
+    program.option('-t, --token <string>', 'Token name', 'bTOKEN');
+    program.parse(process.argv);
+
+    const options = program.opts();
+
     console.log('Start');
     // 1) deploy new Token
-    let result = await deployToken(TOKEN_NAME);
+    let result = await deployToken(options.token);
 
     if (result.indexOf('Transaction completed') == -1) {
         throw new Error("Failed to deploy token!");
