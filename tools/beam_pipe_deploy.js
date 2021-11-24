@@ -20,16 +20,6 @@ function execute(fileName, params, path) {
     return promise;
 }
 
-const WORK_DIR = 'd:/work/beam/out/build/x64-Debug/wallet/cli/';
-const WALLET_CLI_PATH = "d:/work/beam/out/build/x64-Debug/wallet/cli/beam-wallet-masternet.exe";
-const WALLET_DB_PATH = 'd:/work/beam_wallets/bridges/Jim/6.2.12131.4799/wallet.db';
-const TOKEN_APP_PATH = 'd:/work/bridge/beam-bridge-pipe/shaders/token_app.wasm';
-const TOKEN_CONTRACT_PATH = 'd:/work/bridge/beam-bridge-pipe/shaders/token_contract.wasm'
-const API_TOKEN_APP_PATH = "/home/beam/data/token_app.wasm";
-const PIPE_APP_PATH = 'd:/work/bridge/beam-bridge-pipe/shaders/pipe_app.wasm';
-const PIPE_CONTRACT_PATH = 'd:/work/bridge/beam-bridge-pipe/shaders/pipe_contract.wasm';
-const API_PIPE_APP_PATH = "/home/beam/data/pipe_app.wasm"; // process.env.BEAM_PIPE_APP_PATH;
-
 const commonParams = [
     "--node_addr=127.0.0.1:11003",
     "--FakePoW=1",
@@ -37,7 +27,7 @@ const commonParams = [
     "--Fork2=40",
     "--Fork3=60",
     "--Maturity.Coinbase=60",
-    `--wallet_path=${WALLET_DB_PATH}`,
+    `--wallet_path=${process.env.WALLET_DB_PATH}`,
     "--pass=1"
 ];
 
@@ -59,29 +49,29 @@ async function walletListen(fileName, path, duration = 5000) {
 }
 
 async function deployToken(tokenName) {
-    await walletListen(WALLET_CLI_PATH, WORK_DIR);
+    await walletListen(process.env.WALLET_CLI_PATH, process.env.WORK_DIR);
 
     let params = commonParams.concat([
         `shader`,
-        `--shader_app_file=${TOKEN_APP_PATH}`,
+        `--shader_app_file=${process.env.TOKEN_APP_PATH}`,
         `--shader_args=action=create,metadata=STD:SCH_VER=1;N=${tokenName} Coin;SN=${tokenName};UN=${tokenName};NTHUN=AGROTH`,
-        `--shader_contract_file=${TOKEN_CONTRACT_PATH}`
+        `--shader_contract_file=${process.env.TOKEN_CONTRACT_PATH}`
     ]);
 
-    return execute(WALLET_CLI_PATH, params, WORK_DIR);
+    return execute(process.env.WALLET_CLI_PATH, params, process.env.WORK_DIR);
 }
 
 async function deployPipe(tokenCID, aid) {
-    await walletListen(WALLET_CLI_PATH, WORK_DIR);
+    await walletListen(process.env.WALLET_CLI_PATH, process.env.WORK_DIR);
 
     let params = commonParams.concat([
         `shader`,
-        `--shader_app_file=${PIPE_APP_PATH}`,
+        `--shader_app_file=${process.env.PIPE_APP_PATH}`,
         `--shader_args=action=create,tokenCID=${tokenCID},tokenAID=${aid}`,
-        `--shader_contract_file=${PIPE_CONTRACT_PATH}`
+        `--shader_contract_file=${process.env.PIPE_CONTRACT_PATH}`
     ]);
 
-    return execute(WALLET_CLI_PATH, params, WORK_DIR);
+    return execute(process.env.WALLET_CLI_PATH, params, process.env.WORK_DIR);
 }
 
 function getLastCID(shader_app) {
@@ -136,13 +126,13 @@ async function shaderRequestWithTX(shader_app, args) {
  
 async function initTokenOwnerPublicKey(tokenCID) {
     let args = 'action=init,cid=' + tokenCID;
-    await shaderRequestWithTX(API_TOKEN_APP_PATH, args);
+    await shaderRequestWithTX(process.env.API_TOKEN_APP_PATH, args);
 }
 
 function getTokenAssetID(tokenCID) {
     let args = 'action=get_aid,cid=' + tokenCID;
     return beam.baseShaderRequest(
-        API_TOKEN_APP_PATH,
+        process.env.API_TOKEN_APP_PATH,
         args,
         (data) => {
             let json = JSON.parse(data);
@@ -159,13 +149,13 @@ function getTokenAssetID(tokenCID) {
 
 async function changeTokenManager(tokenCID, manager) {
     let args = `action=change_manager,cid=${tokenCID},manager=${manager}`;
-    await shaderRequestWithTX(API_TOKEN_APP_PATH, args);
+    await shaderRequestWithTX(process.env.API_TOKEN_APP_PATH, args);
 }
 
 function getPipePublicKey(pipeCID) {
     let args = 'action=get_pk,cid=' + pipeCID;
     return beam.baseShaderRequest(
-        API_PIPE_APP_PATH,
+        process.env.API_PIPE_APP_PATH,
         args,
         (data) => {
             let json = JSON.parse(data);
@@ -182,7 +172,7 @@ function getPipePublicKey(pipeCID) {
 
 async function setPipeRelayer(pipeCID, relayer) {
     let args = `action=set_relayer,cid=${pipeCID},relayer=${relayer}`;
-    await shaderRequestWithTX(API_PIPE_APP_PATH, args);
+    await shaderRequestWithTX(process.env.API_PIPE_APP_PATH, args);
 }
 
 (async () => {
@@ -200,7 +190,7 @@ async function setPipeRelayer(pipeCID, relayer) {
     }
 
     // 2) get last token cid
-    let tokenCID = await getLastCID(API_TOKEN_APP_PATH);
+    let tokenCID = await getLastCID(process.env.API_TOKEN_APP_PATH);
 
     if (!tokenCID) {
         throw new Error("Failed to get tokenCID")
@@ -222,7 +212,7 @@ async function setPipeRelayer(pipeCID, relayer) {
     }
 
     // 6) get CID of the pipe
-    let pipeCID = await getLastCID(API_PIPE_APP_PATH);
+    let pipeCID = await getLastCID(process.env.API_PIPE_APP_PATH);
     if (!pipeCID) {
         throw new Error("Failed to get pipeCID")
     }
