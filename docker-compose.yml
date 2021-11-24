@@ -1,0 +1,140 @@
+version: '3.5'
+
+networks:
+  default:
+    external: true
+    name: private-network_default
+
+services:
+  beam2eth_relay:
+    build:
+      context: ./../beam-bridge-ethrelay/
+    volumes:
+      - ${DATA_PATH}/ethrelay/ETH/:/home/ethrelay/data/
+    environment:
+      - RELAYER_SCRIPT=beam2eth_relay.js
+      - BEAM_HOST=api
+      - ETH_HTTP_PROVIDER=http://geth:8543
+      - BEAM_BRIDGE_CID=$BEAM_BRIDGE_CID
+      - ETH_PIPE_CONTRACT_ADDRESS=$ETH_PIPE_CONTRACT_ADDRESS
+      - ETH_SENDER=$ETH_SENDER
+      - ETH_TOKEN_CONTRACT=$ETH_TOKEN_CONTRACT
+      - ETH_SENDER_PRIVATE_KEY=$ETH_SENDER_PRIVATE_KEY
+      - ETH_SIDE_DECIMALS=$ETH_SIDE_DECIMALS
+
+  eth2beam_relay:
+    env_file: ./docker.env
+    build:
+      context: ./../beam-bridge-ethrelay/
+    volumes:
+      - ${DATA_PATH}/ethrelay/ETH/:/home/ethrelay/data/
+    environment:
+      - RELAYER_SCRIPT=eth2beam_relay.js
+      - BEAM_HOST=api
+      - ETH_HTTP_PROVIDER=http://geth:8543
+      - ETH_WEBSOCKET_PROVIDER=ws://geth:8546
+      - BEAM_BRIDGE_CID=$BEAM_BRIDGE_CID
+      - ETH_PIPE_CONTRACT_ADDRESS=$ETH_PIPE_CONTRACT_ADDRESS
+      - ETH_SENDER=$ETH_SENDER
+      - ETH_TOKEN_CONTRACT=$ETH_TOKEN_CONTRACT
+      - ETH_SENDER_PRIVATE_KEY=$ETH_SENDER_PRIVATE_KEY
+      - ETH_SIDE_DECIMALS=$ETH_SIDE_DECIMALS
+
+  beam2usdt_relay:
+    build:
+      context: ./../beam-bridge-ethrelay/
+    volumes:
+      - ${DATA_PATH}/ethrelay/USDT/:/home/ethrelay/data/
+    environment:
+      - RELAYER_SCRIPT=beam2eth_relay.js
+      - BEAM_HOST=api
+      - ETH_HTTP_PROVIDER=http://geth:8543
+      - BEAM_BRIDGE_CID=$USDT_BEAM_BRIDGE_CID
+      - ETH_PIPE_CONTRACT_ADDRESS=$USDT_ETH_PIPE_CONTRACT_ADDRESS
+      - ETH_SENDER=$USDT_ETH_SENDER
+      - ETH_TOKEN_CONTRACT=$USDT_ETH_TOKEN_CONTRACT
+      - ETH_SENDER_PRIVATE_KEY=$USDT_ETH_SENDER_PRIVATE_KEY
+      - ETH_SIDE_DECIMALS=$USDT_ETH_SIDE_DECIMALS
+
+  usdt2beam_relay:
+    build:
+      context: ./../beam-bridge-ethrelay/
+    volumes:
+      - ${DATA_PATH}/ethrelay/USDT/:/home/ethrelay/data/
+    environment:
+      - RELAYER_SCRIPT=eth2beam_relay.js
+      - BEAM_HOST=api
+      - ETH_HTTP_PROVIDER=http://geth:8543
+      - ETH_WEBSOCKET_PROVIDER=ws://geth:8546
+      - BEAM_BRIDGE_CID=$USDT_BEAM_BRIDGE_CID
+      - ETH_PIPE_CONTRACT_ADDRESS=$USDT_ETH_PIPE_CONTRACT_ADDRESS
+      - ETH_SENDER=$USDT_ETH_SENDER
+      - ETH_TOKEN_CONTRACT=$USDT_ETH_TOKEN_CONTRACT
+      - ETH_SENDER_PRIVATE_KEY=$USDT_ETH_SENDER_PRIVATE_KEY
+      - ETH_SIDE_DECIMALS=$USDT_ETH_SIDE_DECIMALS
+
+  beam2dai_relay:
+    build:
+      context: ./../beam-bridge-ethrelay/
+    volumes:
+      - ${DATA_PATH}/ethrelay/DAI/:/home/ethrelay/data/
+    environment:
+      - RELAYER_SCRIPT=beam2eth_relay.js
+      - BEAM_HOST=api
+      - ETH_HTTP_PROVIDER=http://geth:8543
+      - BEAM_BRIDGE_CID=$DAI_BEAM_BRIDGE_CID
+      - ETH_PIPE_CONTRACT_ADDRESS=$DAI_ETH_PIPE_CONTRACT_ADDRESS
+      - ETH_SENDER=$DAI_ETH_SENDER
+      - ETH_TOKEN_CONTRACT=$DAI_ETH_TOKEN_CONTRACT
+      - ETH_SENDER_PRIVATE_KEY=$DAI_ETH_SENDER_PRIVATE_KEY
+      - ETH_SIDE_DECIMALS=$DAI_ETH_SIDE_DECIMALS
+
+  dai2beam_relay:
+    build:
+      context: ./../beam-bridge-ethrelay/
+    volumes:
+      - ${DATA_PATH}/ethrelay/DAI/:/home/ethrelay/data/
+    environment:
+      - RELAYER_SCRIPT=eth2beam_relay.js
+      - BEAM_HOST=api
+      - ETH_HTTP_PROVIDER=http://geth:8543
+      - ETH_WEBSOCKET_PROVIDER=ws://geth:8546
+      - BEAM_BRIDGE_CID=$DAI_BEAM_BRIDGE_CID
+      - ETH_PIPE_CONTRACT_ADDRESS=$DAI_ETH_PIPE_CONTRACT_ADDRESS
+      - ETH_SENDER=$DAI_ETH_SENDER
+      - ETH_TOKEN_CONTRACT=$DAI_ETH_TOKEN_CONTRACT
+      - ETH_SENDER_PRIVATE_KEY=$DAI_ETH_SENDER_PRIVATE_KEY
+      - ETH_SIDE_DECIMALS=$DAI_ETH_SIDE_DECIMALS
+
+  beam2wbtc_relay:
+    build:
+      context: ./../beam-bridge-ethrelay/
+    volumes:
+      - ${DATA_PATH}/ethrelay/WBTC/:/home/ethrelay/data/
+    environment:
+      - RELAYER_SCRIPT=beam2eth_relay.js
+      - BEAM_HOST=api
+      - ETH_HTTP_PROVIDER=http://geth:8543
+      - BEAM_BRIDGE_CID=$WBTC_BEAM_BRIDGE_CID
+      - ETH_PIPE_CONTRACT_ADDRESS=$WBTC_ETH_PIPE_CONTRACT_ADDRESS
+      - ETH_SENDER=$WBTC_ETH_SENDER
+      - ETH_TOKEN_CONTRACT=$WBTC_ETH_TOKEN_CONTRACT
+      - ETH_SENDER_PRIVATE_KEY=$WBTC_ETH_SENDER_PRIVATE_KEY
+      - ETH_SIDE_DECIMALS=$WBTC_ETH_SIDE_DECIMALS
+
+  wbtc2beam_relay:
+    build:
+      context: ./../beam-bridge-ethrelay/
+    volumes:
+      - ${DATA_PATH}/ethrelay/WBTC/:/home/ethrelay/data/
+    environment:
+      - RELAYER_SCRIPT=eth2beam_relay.js
+      - BEAM_HOST=api
+      - ETH_HTTP_PROVIDER=http://geth:8543
+      - ETH_WEBSOCKET_PROVIDER=ws://geth:8546
+      - BEAM_BRIDGE_CID=$WBTC_BEAM_BRIDGE_CID
+      - ETH_PIPE_CONTRACT_ADDRESS=$WBTC_ETH_PIPE_CONTRACT_ADDRESS
+      - ETH_SENDER=$WBTC_ETH_SENDER
+      - ETH_TOKEN_CONTRACT=$WBTC_ETH_TOKEN_CONTRACT
+      - ETH_SENDER_PRIVATE_KEY=$WBTC_ETH_SENDER_PRIVATE_KEY
+      - ETH_SIDE_DECIMALS=$WBTC_ETH_SIDE_DECIMALS
