@@ -8,7 +8,7 @@ networks:
 services:
   beam2eth_relay:
     build:
-      context: ./../beam-bridge-ethrelay/
+      context: ./
     volumes:
       - ${DATA_PATH}/ethrelay/ETH/:/home/ethrelay/data/
     environment:
@@ -25,7 +25,7 @@ services:
   eth2beam_relay:
     env_file: ./docker.env
     build:
-      context: ./../beam-bridge-ethrelay/
+      context: ./
     volumes:
       - ${DATA_PATH}/ethrelay/ETH/:/home/ethrelay/data/
     environment:
@@ -42,7 +42,7 @@ services:
 
   beam2usdt_relay:
     build:
-      context: ./../beam-bridge-ethrelay/
+      context: ./
     volumes:
       - ${DATA_PATH}/ethrelay/USDT/:/home/ethrelay/data/
     environment:
@@ -58,7 +58,7 @@ services:
 
   usdt2beam_relay:
     build:
-      context: ./../beam-bridge-ethrelay/
+      context: ./
     volumes:
       - ${DATA_PATH}/ethrelay/USDT/:/home/ethrelay/data/
     environment:
@@ -75,7 +75,7 @@ services:
 
   beam2dai_relay:
     build:
-      context: ./../beam-bridge-ethrelay/
+      context: ./
     volumes:
       - ${DATA_PATH}/ethrelay/DAI/:/home/ethrelay/data/
     environment:
@@ -91,7 +91,7 @@ services:
 
   dai2beam_relay:
     build:
-      context: ./../beam-bridge-ethrelay/
+      context: ./
     volumes:
       - ${DATA_PATH}/ethrelay/DAI/:/home/ethrelay/data/
     environment:
@@ -108,7 +108,7 @@ services:
 
   beam2wbtc_relay:
     build:
-      context: ./../beam-bridge-ethrelay/
+      context: ./
     volumes:
       - ${DATA_PATH}/ethrelay/WBTC/:/home/ethrelay/data/
     environment:
@@ -124,7 +124,7 @@ services:
 
   wbtc2beam_relay:
     build:
-      context: ./../beam-bridge-ethrelay/
+      context: ./
     volumes:
       - ${DATA_PATH}/ethrelay/WBTC/:/home/ethrelay/data/
     environment:
