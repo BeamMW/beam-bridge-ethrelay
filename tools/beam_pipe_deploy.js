@@ -20,15 +20,15 @@ function execute(fileName, params, path) {
     return promise;
 }
 
-const commonParams = [
-    "--node_addr=127.0.0.1:11003",
-    "--FakePoW=1",
-    "--Fork1=20",
-    "--Fork2=40",
-    "--Fork3=60",
-    "--Maturity.Coinbase=60",
+const commonParams = process.env.WALLET_ADDITIONAL_PARAMS ? [
+    `--node_addr=${process.env.NODE_ADDR}`,
     `--wallet_path=${process.env.WALLET_DB_PATH}`,
-    "--pass=1"
+    `--pass=${process.env.WALLET_PASS}`,
+    ...process.env.WALLET_ADDITIONAL_PARAMS.split(';')
+] : [
+    `--node_addr=${process.env.NODE_ADDR}`,
+    `--wallet_path=${process.env.WALLET_DB_PATH}`,
+    `--pass=${process.env.WALLET_PASS}`
 ];
 
 async function walletListen(fileName, path, duration = 5000) {
