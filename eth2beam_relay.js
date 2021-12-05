@@ -114,7 +114,6 @@ async function processEvent(event) {
         // TODO roman.strilets change this code
         // let txIDstr = pushRemoteTxID ? `, txID - ${pushRemoteTxID}` : '';
         logger.error(`Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}. ${err}`);
-        throw err;
     } finally {
         eventsInProgress.delete(event["returnValues"]["msgId"]);
     }
