@@ -21,12 +21,8 @@
   "dependencies": {
     "commander": "^8.0.0",
     "dotenv": "^9.0.2",
-    "eth-proof": "^2.1.6",
     "fast-safe-stringify": "^2.1.1",
     "human-standard-token-abi": "^2.0.0",
-    "js-sha3": "^0.8.0",
-    "keccak256": "^1.0.2",
-    "rlp": "^2.2.6",
     "sqlite": "^4.0.23",
     "sqlite3": "^5.0.2",
     "web3": "^1.6.0",
