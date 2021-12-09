@@ -1,223 +1,273 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const beam = require('./utils/beam_utils.js');
-const Web3 = require('web3');
-const fs = require('fs');
-const {program} = require('commander');
-const sqlite3 = require('sqlite3')
-const sqlite = require('sqlite');
-const logger = require('./logger.js')
+const beam = require("./utils/beam_utils.js");
+const Web3 = require("web3");
+const fs = require("fs");
+const { program } = require("commander");
+const sqlite3 = require("sqlite3");
+const sqlite = require("sqlite");
+const logger = require("./logger.js");
 
-const PipeContract = require('./utils/EthPipeContractABI.js');
+const PipeContract = require("./utils/EthPipeContractABI.js");
 
-const EVENTS_TABLE = 'events';
+const EVENTS_TABLE = "events";
 let db = undefined;
 let eventsInProgress = new Set();
 
+// it is not necessary to use await before return
 async function addEvent(event) {
-    const insertSql = `INSERT INTO ${EVENTS_TABLE} (block, txHash, body) VALUES(?,?,?);`;
-    try {
-        return await db.run(insertSql, [event['blockNumber'], event['transactionHash'], JSON.stringify(event)]);
-    } catch (err) {
-        // ignore if event is exist in db
-        if (err.hasOwnProperty('errno') && err.errno == 19)
-            return;
-        logger.error("Failed to save event - " + err.message, ' Event: ', event);
-        throw err;
-    }
+  const insertSql = `INSERT INTO ${EVENTS_TABLE} (block, txHash, body) VALUES(?,?,?);`;
+  try {
+    return await db.run(insertSql, [
+      event["blockNumber"],
+      event["transactionHash"],
+      JSON.stringify(event),
+    ]);
+  } catch (err) {
+    // ignore if event is exist in db
+    if (err.hasOwnProperty("errno") && err.errno == 19) return;
+    logger.error("Failed to save event - " + err.message, " Event: ", event);
+    throw err;
+  }
 }
 
 async function removeEvent(event) {
-    const deleteSql = `DELETE FROM ${EVENTS_TABLE} WHERE block=${event['blockNumber']} AND txHash='${event['transactionHash']}';`;
-    try {
-        return await db.run(deleteSql);
-    } catch (err) {
-        logger.error("Failed to delete event - " + err.message, ' Event: ', event);
-        throw err;
-    }
+  const deleteSql = `DELETE FROM ${EVENTS_TABLE} WHERE block=${event["blockNumber"]} AND txHash='${event["transactionHash"]}';`;
+  try {
+    return await db.run(deleteSql);
+  } catch (err) {
+    logger.error("Failed to delete event - " + err.message, " Event: ", event);
+    throw err;
+  }
 }
 
 async function onProcessedEvent(event) {
-    const updateSql = `UPDATE ${EVENTS_TABLE} SET processed=1 WHERE block=${event['blockNumber']} AND txHash='${event['transactionHash']}'`;
-    try {
-       return await db.run(updateSql);
-    } catch (err) {
-        logger.error("Failed to update event - " + err.message, ' Event: ', event);
-        throw err;
-    }
+  const updateSql = `UPDATE ${EVENTS_TABLE} SET processed=1 WHERE block=${event["blockNumber"]} AND txHash='${event["transactionHash"]}'`;
+  try {
+    return await db.run(updateSql);
+  } catch (err) {
+    logger.error("Failed to update event - " + err.message, " Event: ", event);
+    throw err;
+  }
 }
 
 async function onGotNewBlock(blockHeader) {
-    const minBlockNumber = blockHeader['number'] - process.env.ETH_MIN_CONFRIMATIONS;
-    const filterSql = `SELECT body FROM ${EVENTS_TABLE} WHERE processed = 0 AND block <= ${minBlockNumber}`;
-    let rows = await db.all(filterSql);
+  const minBlockNumber =
+    blockHeader["number"] - process.env.ETH_MIN_CONFRIMATIONS;
+  const filterSql = `SELECT body FROM ${EVENTS_TABLE} WHERE processed = 0 AND block <= ${minBlockNumber}`;
+  let rows = await db.all(filterSql);
 
-    // TODO
-    for (const item of rows) {
-        const event = JSON.parse(item['body']);
-        if (eventsInProgress.has(event["returnValues"]["msgId"])) {
-            continue;
-        }
-        await processEvent(event);
+  // TODO
+
+  // it will be better to use Promise all instead of for
+  // /
+  // const data = rows
+  //   .map((r) => {
+  //     const event = JSON.parse(item["body"]);
+  //     return eventsInProgress.has(event["returnValues"]["msgId"])
+  //       ? event
+  //       : null;
+  //   })
+  //   .filter((r) => r);
+  // await Promise.all(data.map((e) => processEvent(e)));
+  // in that case tasks will run in parallel instead of one after another
+
+  for (const item of rows) {
+    const event = JSON.parse(item["body"]);
+    if (eventsInProgress.has(event["returnValues"]["msgId"])) {
+      continue;
     }
+    await processEvent(event);
+  }
 }
 
 async function processEvent(event) {
-    logger.info("Processing of a new message has started. Message ID - ", event["returnValues"]["msgId"]);
+  logger.info(
+    "Processing of a new message has started. Message ID - ",
+    event["returnValues"]["msgId"]
+  );
 
-    eventsInProgress.add(event["returnValues"]["msgId"]);
-    try {
-        let amount = event["returnValues"]["amount"];
-        let relayerFee = event["returnValues"]["relayerFee"];
+  eventsInProgress.add(event["returnValues"]["msgId"]);
+  try {
+    let amount = event["returnValues"]["amount"];
+    let relayerFee = event["returnValues"]["relayerFee"];
 
-        if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
-            const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
-            // check that amount contains this count of zeros at the end
-            let endedStr = "0".repeat(diff);
-            if (!amount.endsWith(endedStr) || !relayerFee.endsWith(endedStr)) {
-                throw new Error(`Unexpected amounts.`);
-            }
-            // remove zeros
-            amount = amount.slice(0, -diff);
-            relayerFee = relayerFee.slice(0, -diff);
-        } else if (process.env.ETH_SIDE_DECIMALS < beam.BEAM_MAX_DECIMALS) {
-            const diff = beam.BEAM_MAX_DECIMALS - process.env.ETH_SIDE_DECIMALS;
-            amount = amount.padEnd(amount.length + diff, '0');
-            relayerFee = relayerFee.padEnd(relayerFee.length + diff, '0');
-        }
-
-        var result = await beam.bridgePushRemote(
-            event["returnValues"]["msgId"],
-            amount,
-            event["returnValues"]["receiver"],
-            relayerFee);
-
-        if (!result) {
-            throw new Error('Unexpected result of the beam.bridgePushRemote.')
-        }
-
-        if (result.isExist) {
-            logger.info("The message is exist in the Beam. Message ID - ", event["returnValues"]["msgId"]);
-        } else {
-            const txStatus = await beam.waitTx(result.txid);
-        
-            if (beam.TX_STATUS_FAILED == txStatus) {
-                throw new Error('Invalid TX status.')
-            }
-
-            logger.info("The message was successfully transferred to the Beam. Message ID - ", event["returnValues"]["msgId"]);
-        }
-        
-        // Update event state
-        await onProcessedEvent(event);
-    } catch (err) {
-        // TODO roman.strilets change this code
-        // let txIDstr = pushRemoteTxID ? `, txID - ${pushRemoteTxID}` : '';
-        logger.error(`Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}. ${err}`);
-    } finally {
-        eventsInProgress.delete(event["returnValues"]["msgId"]);
+    if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
+      const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
+      // check that amount contains this count of zeros at the end
+      let endedStr = "0".repeat(diff);
+      if (!amount.endsWith(endedStr) || !relayerFee.endsWith(endedStr)) {
+        throw new Error(`Unexpected amounts.`);
+      }
+      // remove zeros
+      amount = amount.slice(0, -diff);
+      relayerFee = relayerFee.slice(0, -diff);
+    } else if (process.env.ETH_SIDE_DECIMALS < beam.BEAM_MAX_DECIMALS) {
+      const diff = beam.BEAM_MAX_DECIMALS - process.env.ETH_SIDE_DECIMALS;
+      amount = amount.padEnd(amount.length + diff, "0");
+      relayerFee = relayerFee.padEnd(relayerFee.length + diff, "0");
     }
+
+    const result = await beam.bridgePushRemote(
+      event["returnValues"]["msgId"],
+      amount,
+      event["returnValues"]["receiver"],
+      relayerFee
+    );
+
+    if (!result) {
+      throw new Error("Unexpected result of the beam.bridgePushRemote.");
+    }
+
+    if (result.isExist) {
+      logger.info(
+        "The message is exist in the Beam. Message ID - ",
+        event["returnValues"]["msgId"]
+      );
+    } else {
+      const txStatus = await beam.waitTx(result.txid);
+
+      if (beam.TX_STATUS_FAILED == txStatus) {
+        throw new Error("Invalid TX status.");
+      }
+
+      logger.info(
+        "The message was successfully transferred to the Beam. Message ID - ",
+        event["returnValues"]["msgId"]
+      );
+    }
+
+    // Update event state
+    await onProcessedEvent(event);
+  } catch (err) {
+    // TODO roman.strilets change this code
+    // let txIDstr = pushRemoteTxID ? `, txID - ${pushRemoteTxID}` : '';
+    logger.error(
+      `Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}. ${err}`
+    );
+  } finally {
+    eventsInProgress.delete(event["returnValues"]["msgId"]);
+  }
 }
 
 async function getStartBlockFromDB() {
-    try {
-        const minUnprocessedBlockSql = `SELECT block FROM ${EVENTS_TABLE} WHERE processed=0 ORDER BY block ASC LIMIT 1;`;
-        let row = await db.get(minUnprocessedBlockSql);
-        if (!row) {
-            const maxProcessedBlockSql = `SELECT block FROM ${EVENTS_TABLE} WHERE processed=1 ORDER BY block DESC LIMIT 1;`;
-            row = await db.get(maxProcessedBlockSql);
-        }
-        return row['block'];
-    } catch (err) {
-        logger.error("Failed to get start block from DB - " + err.message);
-        throw err;
+  try {
+    const minUnprocessedBlockSql = `SELECT block FROM ${EVENTS_TABLE} WHERE processed=0 ORDER BY block ASC LIMIT 1;`;
+    let row = await db.get(minUnprocessedBlockSql);
+    if (!row) {
+      const maxProcessedBlockSql = `SELECT block FROM ${EVENTS_TABLE} WHERE processed=1 ORDER BY block DESC LIMIT 1;`;
+      row = await db.get(maxProcessedBlockSql);
     }
+    return row["block"];
+  } catch (err) {
+    logger.error("Failed to get start block from DB - " + err.message);
+    throw err;
+  }
 }
 
 (async () => {
-    // open the database
-    db = await sqlite.open({
-        filename: process.env.ETH2BEAM_DB_PATH,
-        mode: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-        driver: sqlite3.Database
-    });
+  // open the database
+  db = await sqlite.open({
+    filename: process.env.ETH2BEAM_DB_PATH,
+    mode: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
+    driver: sqlite3.Database,
+  });
 
-    const createTableSql = `CREATE TABLE IF NOT EXISTS ${EVENTS_TABLE} 
+  const createTableSql = `CREATE TABLE IF NOT EXISTS ${EVENTS_TABLE} 
                             (block INTEGER NOT NULL
                             ,txHash TEXT NOT NULL
                             ,processed INTEGER NOT NULL DEFAULT 0
                             ,body TEXT NOT NULL,
                             UNIQUE(block,txHash));`;
 
-    await db.exec(createTableSql);
+  await db.exec(createTableSql);
 
-    program.option('-b, --startBlock <number>', 'start block');
-    program.parse(process.argv);
+  program.option("-b, --startBlock <number>", "start block");
+  program.parse(process.argv);
 
-    const options = program.opts();
-    let startBlock = 0;
+  const options = program.opts();
+  let startBlock = 0;
 
-    if (options.startBlock !== undefined) {
-        startBlock = options.startBlock;
-    } else {
-        try {
-            startBlock = await getStartBlockFromDB();
-        } catch (error) {
-            logger.error("Failed to load startBlock - ", error);
-        }
+  if (options.startBlock !== undefined) {
+    startBlock = options.startBlock;
+  } else {
+    try {
+      startBlock = await getStartBlockFromDB();
+    } catch (error) {
+      logger.error("Failed to load startBlock - ", error);
     }
+  }
 
-    const web3ProviderOptions = {
-        // Enable auto reconnection
-        reconnect: {
-            auto: true,
-            delay: 5000, // ms
-            maxAttempts: 5,
-            onTimeout: false
-        }
-    }
-    let web3 = new Web3(new Web3.providers.WebsocketProvider(process.env.ETH_WEBSOCKET_PROVIDER, web3ProviderOptions));
-    const pipeContract = new web3.eth.Contract(
-        PipeContract.abi,
-        process.env.ETH_PIPE_CONTRACT_ADDRESS
-    );
-    
-    // subscribe to Pipe.NewLocalMessage
-    let eventSubscription = pipeContract.events.NewLocalMessage({
-        fromBlock: startBlock
-    }, function(error, event) { /*console.log(event);*/ })
-    .on("connected", function(subscriptionId) {
-        logger.info('Pipe.NewLocalMessage: successfully subcribed, subscription id: ', subscriptionId);
+  const web3ProviderOptions = {
+    // Enable auto reconnection
+    reconnect: {
+      auto: true,
+      delay: 5000, // ms
+      maxAttempts: 5,
+      onTimeout: false,
+    },
+  };
+  let web3 = new Web3(
+    new Web3.providers.WebsocketProvider(
+      process.env.ETH_WEBSOCKET_PROVIDER,
+      web3ProviderOptions
+    )
+  );
+  const pipeContract = new web3.eth.Contract(
+    PipeContract.abi,
+    process.env.ETH_PIPE_CONTRACT_ADDRESS
+  );
+
+  // subscribe to Pipe.NewLocalMessage
+  let eventSubscription = pipeContract.events
+    .NewLocalMessage(
+      {
+        fromBlock: startBlock,
+      },
+      function (error, event) {
+        /*console.log(event);*/
+      }
+    )
+    .on("connected", function (subscriptionId) {
+      logger.info(
+        "Pipe.NewLocalMessage: successfully subcribed, subscription id: ",
+        subscriptionId
+      );
     })
-    .on('data', async function(event) {
-        logger.info("Got new event: ", event);
-        await addEvent(event);
+    .on("data", async function (event) {
+      logger.info("Got new event: ", event);
+      await addEvent(event);
     })
-    .on('changed', async function(event) {
-        // remove event from local database
-        logger.info("Event changed! ", event);
-        await removeEvent(event);
+    .on("changed", async function (event) {
+      // remove event from local database
+      logger.info("Event changed! ", event);
+      await removeEvent(event);
     })
-    .on('error', function(error, receipt) { // If the transaction was rejected by the network with a receipt, the second parameter will be the receipt.
-        logger.error("Error: ", error);
-        if (receipt) {
-            logger.info("receipt: ", receipt);
-        }
+    .on("error", function (error, receipt) {
+      // If the transaction was rejected by the network with a receipt, the second parameter will be the receipt.
+      logger.error("Error: ", error);
+      if (receipt) {
+        logger.info("receipt: ", receipt);
+      }
     });
-    
-    let newBlockSubscription = web3.eth.subscribe('newBlockHeaders')
-    .on("connected", function(subscriptionId){
-        logger.info('newBlockHeaders: successfully subcribed, subscription id - ', subscriptionId);
+
+  let newBlockSubscription = web3.eth
+    .subscribe("newBlockHeaders")
+    .on("connected", function (subscriptionId) {
+      logger.info(
+        "newBlockHeaders: successfully subcribed, subscription id - ",
+        subscriptionId
+      );
     })
-    .on("data", async function(blockHeader){
-        await onGotNewBlock(blockHeader);
+    .on("data", async function (blockHeader) {
+      await onGotNewBlock(blockHeader);
     })
     .on("error", logger.error);
-    
-    // // unsubscribes the newBlockSubscription
-    // newBlockSubscription.unsubscribe(function(error, success){
-    //     if (success) {
-    //         logger.info('Successfully unsubscribed!');
-    //     }
-    // });
+
+  // // unsubscribes the newBlockSubscription
+  // newBlockSubscription.unsubscribe(function(error, success){
+  //     if (success) {
+  //         logger.info('Successfully unsubscribed!');
+  //     }
+  // });
 })();
