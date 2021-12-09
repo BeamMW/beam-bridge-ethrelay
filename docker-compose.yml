@@ -3,7 +3,7 @@ version: '3.5'
 networks:
   default:
     external: true
-    name: private-network_default
+    name: ${BEAM_NETWORK}
 
 services:
   beam2eth_relay:
