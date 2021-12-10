@@ -41,7 +41,7 @@ const processRemoteMessage = async (msgId, amount, receiver, relayerFee) => {
         process.env.ETH_PIPE_CONTRACT_ADDRESS, 
         process.env.ETH_RELAYER_PRIVATE_KEY,
         pushRemote.encodeABI(),
-        process.env.PUSH_REMOTE_GAS_LIMIT);
+        process.env.ETH_PIPE_PUSH_REMOTE_GAS_LIMIT);
 }
 
 module.exports = {

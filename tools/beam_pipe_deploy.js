@@ -49,7 +49,7 @@ async function walletListen(fileName, path, duration = 5000) {
 }
 
 async function deployToken(tokenName) {
-    await walletListen(process.env.WALLET_CLI_PATH, process.env.WORK_DIR);
+    await walletListen(process.env.WALLET_CLI_PATH, process.env.WALLET_CLI_WORK_DIR);
 
     let params = commonParams.concat([
         `shader`,
@@ -58,11 +58,11 @@ async function deployToken(tokenName) {
         `--shader_contract_file=${process.env.TOKEN_CONTRACT_PATH}`
     ]);
 
-    return execute(process.env.WALLET_CLI_PATH, params, process.env.WORK_DIR);
+    return execute(process.env.WALLET_CLI_PATH, params, process.env.WALLET_CLI_WORK_DIR);
 }
 
 async function deployPipe(tokenCID, aid) {
-    await walletListen(process.env.WALLET_CLI_PATH, process.env.WORK_DIR);
+    await walletListen(process.env.WALLET_CLI_PATH, process.env.WALLET_CLI_WORK_DIR);
 
     let params = commonParams.concat([
         `shader`,
@@ -71,7 +71,7 @@ async function deployPipe(tokenCID, aid) {
         `--shader_contract_file=${process.env.PIPE_CONTRACT_PATH}`
     ]);
 
-    return execute(process.env.WALLET_CLI_PATH, params, process.env.WORK_DIR);
+    return execute(process.env.WALLET_CLI_PATH, params, process.env.WALLET_CLI_WORK_DIR);
 }
 
 function getLastCID(shader_app) {

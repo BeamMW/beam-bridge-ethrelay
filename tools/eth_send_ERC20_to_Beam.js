@@ -36,14 +36,14 @@ lockToken = async (amount, pubkey, relayerFee) => {
         process.env.ETH_RELAYER_PRIVATE_KEY,
         approveTx.encodeABI(),
         // TODO roman.strilets change this parameter
-        process.env.PUSH_REMOTE_GAS_LIMIT);
+        process.env.ETH_PIPE_PUSH_REMOTE_GAS_LIMIT);
     let lockTxReceipt = await eth_utils.requestToContract(
         process.env.ETH_RELAYER_ADDRESS,
         process.env.ETH_PIPE_CONTRACT_ADDRESS,
         process.env.ETH_RELAYER_PRIVATE_KEY,
         lockTx.encodeABI(),
         // TODO roman.strilets change this parameter
-        process.env.PUSH_REMOTE_GAS_LIMIT);
+        process.env.ETH_PIPE_PUSH_REMOTE_GAS_LIMIT);
 
     //console.log(lockTxReceipt);
     return lockTxReceipt;
@@ -56,7 +56,7 @@ lockToken = async (amount, pubkey, relayerFee) => {
     const relayerFee = BigInt(options.fee) * multiplier;
 
     // lock 'tokens' on Ethereum chain
-    let receipt = await lockToken(amount, process.env.BEAM_PUBLIC_KEY, relayerFee);
+    let receipt = await lockToken(amount, process.env.BEAM_PIPE_USER_PUBLIC_KEY, relayerFee);
 
     //console.log("TX receipt: ", receipt);
     console.log("'sendFunds' is finished.")

@@ -111,7 +111,7 @@ async function isValidRelayerFee(relayerFee) {
 async function monitorBridge() {
   let currentHeight = await requestHeight();
 
-  if (currentHeight > 0 && currentHeight > process.env.BEAM_CONFIRMATIONS) {
+  if (currentHeight > 0 && currentHeight > process.env.BEAM_MIN_CONFIRMATIONS) {
     try {
       let count = await beam.getLocalMsgCount();
 
@@ -120,7 +120,7 @@ async function monitorBridge() {
 
         if (
           localMsg["height"] >
-          currentHeight - process.env.BEAM_CONFIRMATIONS
+          currentHeight - process.env.BEAM_MIN_CONFIRMATIONS
         ) {
           break;
         }
