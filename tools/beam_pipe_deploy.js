@@ -1,7 +1,7 @@
 require('dotenv').config();
 let exec = require('child_process').execFile;
 const beam = require('./../utils/beam_utils.js');
-const {program} = require('commander');
+const { program } = require('commander');
 
 /**
  * Function to execute exe
@@ -118,12 +118,12 @@ async function shaderRequestWithTX(shader_app, args) {
     );
 
     const txStatus = await beam.waitTx(txid);
-        
+
     if (beam.TX_STATUS_FAILED == txStatus) {
         throw new Error('Invalid TX status, txid - ' + txid)
     }
 }
- 
+
 async function initTokenOwnerPublicKey(tokenCID) {
     let args = 'action=init,cid=' + tokenCID;
     await shaderRequestWithTX(process.env.API_TOKEN_APP_PATH, args);
@@ -140,7 +140,7 @@ function getTokenAssetID(tokenCID) {
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
             }
-            
+
             let output = JSON.parse(json['result']['output']);
             return output['aid'];
         }
@@ -163,7 +163,7 @@ function getPipePublicKey(pipeCID) {
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
             }
-            
+
             let output = JSON.parse(json['result']['output']);
             return output['pk'];
         }

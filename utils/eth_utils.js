@@ -7,7 +7,7 @@ const pipeContract = new web3.eth.Contract(
     process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
-const requestToContract = async (sender, receiver, privateKey, abi, gasLimit, total=0) => {
+const requestToContract = async (sender, receiver, privateKey, abi, gasLimit, total = 0) => {
     let nonce = await web3.eth.getTransactionCount(sender);
     let signedTx = await web3.eth.accounts.signTransaction({
         from: sender,
@@ -37,8 +37,8 @@ const processRemoteMessage = async (msgId, amount, receiver, relayerFee) => {
     const pushRemote = pipeContract.methods.processRemoteMessage(msgId, relayerFee, amount, tmpReceiver);
 
     await requestToContract(
-        process.env.ETH_RELAYER_ADDRESS, 
-        process.env.ETH_PIPE_CONTRACT_ADDRESS, 
+        process.env.ETH_RELAYER_ADDRESS,
+        process.env.ETH_PIPE_CONTRACT_ADDRESS,
         process.env.ETH_RELAYER_PRIVATE_KEY,
         pushRemote.encodeABI(),
         process.env.ETH_PIPE_PUSH_REMOTE_GAS_LIMIT);

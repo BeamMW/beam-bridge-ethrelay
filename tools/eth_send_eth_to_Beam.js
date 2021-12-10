@@ -11,7 +11,7 @@ const pipeContract = new web3.eth.Contract(
     process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
-const {program} = require('commander');
+const { program } = require('commander');
 
 program.option('-a, --amount <number>', 'amount of 10 Gwei to send', 500000000);
 program.option('-f, --fee <number>', 'relayer fee of 10 Gwei', 100000000);
@@ -24,7 +24,7 @@ lockEthereum = async (amount, pubkey, relayerFee) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
     console.log('sender: ', process.env.ETH_RELAYER_ADDRESS)
     // convert to wei
-    const total = web3.utils.toWei((10*(amount + relayerFee)).toString(), 'gwei');
+    const total = web3.utils.toWei((10 * (amount + relayerFee)).toString(), 'gwei');
 
     const lockTx = pipeContract.methods.sendFunds(amount.toString(), relayerFee.toString(), pubkey);
 

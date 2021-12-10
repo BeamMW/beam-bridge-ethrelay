@@ -35,7 +35,7 @@ function baseRequest(method, params, processResult) {
 
         let request = http.request(options, callback);
 
-        request.on('error', (err)=> {
+        request.on('error', (err) => {
             reject(err);
         });
 
@@ -63,7 +63,7 @@ function baseShaderRequest(contractFile, args, processResult) {
 
 const getStatusTx = (txId) => {
     return baseRequest(
-        'tx_status', 
+        'tx_status',
         {
             txId: txId
         },
@@ -81,7 +81,7 @@ const getStatusTx = (txId) => {
 
 const getBlockDetails = (height) => {
     return baseRequest(
-        'block_details', 
+        'block_details',
         {
             height: height
         },
@@ -99,7 +99,7 @@ const getBlockDetails = (height) => {
 
 const walletStatus = () => {
     return baseRequest(
-        'wallet_status', 
+        'wallet_status',
         {},
         (data) => {
             let json = JSON.parse(data);
@@ -138,7 +138,7 @@ const bridgePushRemote = (msgId, amount, receiver, relayerFee) => {
             }
         }
 
-        return {isExist: isExist, txid: res['result']['txid']};
+        return { isExist: isExist, txid: res['result']['txid'] };
     });
 };
 
@@ -172,7 +172,7 @@ const waitTx = async (txId) => {
             return status;
         }
         await sleep(15000);
-    } while(true)
+    } while (true)
 }
 
 const getLocalMsgCount = () => {

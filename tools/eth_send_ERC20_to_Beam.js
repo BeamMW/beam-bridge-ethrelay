@@ -15,7 +15,7 @@ const pipeContract = new web3.eth.Contract(
     process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
-const {program} = require('commander');
+const { program } = require('commander');
 
 program.option('-a, --amount <number>', 'amount of tokens to send', 200);
 program.option('-f, --fee <number>', 'relayer fee', 10);
