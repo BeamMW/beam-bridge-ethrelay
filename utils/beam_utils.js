@@ -14,9 +14,9 @@ function baseRequest(method, params, processResult) {
     return new Promise((resolve, reject) => {
         let accumulated = '';
         let options = {
-            host: process.env.BEAM_HOST,
-            path: process.env.BEAM_HTPP_API_PATH,
-            port: process.env.BEAM_PORT,
+            host: process.env.BEAM_WALLET_API_HOST,
+            path: process.env.BEAM_WALLET_API_HTPP_PATH,
+            port: process.env.BEAM_WALLET_API_PORT,
             method: 'POST',
             timeout: 5000,
         };
@@ -114,7 +114,7 @@ const walletStatus = () => {
 }
 
 const bridgePushRemote = (msgId, amount, receiver, relayerFee) => {
-    let args = 'action=push_remote,cid=' + process.env.BEAM_BRIDGE_CID;
+    let args = 'action=push_remote,cid=' + process.env.BEAM_PIPE_CID;
     args += ',msgId=' + msgId;
     args += ',amount=' + amount;
     args += ',receiver=' + receiver;
@@ -145,7 +145,7 @@ const bridgePushRemote = (msgId, amount, receiver, relayerFee) => {
 const getUserPubkey = () => {
     return baseShaderRequest(
         process.env.BEAM_PIPE_APP_PATH,
-        'role=user,action=get_pk,cid=' + process.env.BEAM_BRIDGE_CID,
+        'role=user,action=get_pk,cid=' + process.env.BEAM_PIPE_CID,
         (data) => {
             let json = JSON.parse(data);
 
@@ -176,7 +176,7 @@ const waitTx = async (txId) => {
 }
 
 const getLocalMsgCount = () => {
-    let args = 'action=local_msg_count,cid=' + process.env.BEAM_BRIDGE_CID;
+    let args = 'action=local_msg_count,cid=' + process.env.BEAM_PIPE_CID;
     return baseShaderRequest(
         process.env.BEAM_PIPE_APP_PATH,
         args,
@@ -194,7 +194,7 @@ const getLocalMsgCount = () => {
 };
 
 const getLocalMsg = (msgId) => {
-    let args = 'role=manager,action=local_msg,cid=' + process.env.BEAM_BRIDGE_CID;
+    let args = 'role=manager,action=local_msg,cid=' + process.env.BEAM_PIPE_CID;
     args += ',msgId=' + msgId;
     return baseShaderRequest(
         process.env.BEAM_PIPE_APP_PATH,

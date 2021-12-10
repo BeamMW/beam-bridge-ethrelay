@@ -26,21 +26,21 @@ const options = program.opts();
 
 lockToken = async (amount, pubkey, relayerFee) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
-    console.log('sender: ', process.env.ETH_SENDER)
+    console.log('sender: ', process.env.ETH_RELAYER_ADDRESS)
     const approveTx = tokenContract.methods.approve(process.env.ETH_PIPE_CONTRACT_ADDRESS, amount + relayerFee);
     const lockTx = pipeContract.methods.sendFunds(amount, relayerFee, pubkey);
 
     await eth_utils.requestToContract(
-        process.env.ETH_SENDER,
+        process.env.ETH_RELAYER_ADDRESS,
         process.env.ETH_TOKEN_CONTRACT,
-        process.env.ETH_SENDER_PRIVATE_KEY,
+        process.env.ETH_RELAYER_PRIVATE_KEY,
         approveTx.encodeABI(),
         // TODO roman.strilets change this parameter
         process.env.PUSH_REMOTE_GAS_LIMIT);
     let lockTxReceipt = await eth_utils.requestToContract(
-        process.env.ETH_SENDER,
+        process.env.ETH_RELAYER_ADDRESS,
         process.env.ETH_PIPE_CONTRACT_ADDRESS,
-        process.env.ETH_SENDER_PRIVATE_KEY,
+        process.env.ETH_RELAYER_PRIVATE_KEY,
         lockTx.encodeABI(),
         // TODO roman.strilets change this parameter
         process.env.PUSH_REMOTE_GAS_LIMIT);

@@ -37,9 +37,9 @@ const processRemoteMessage = async (msgId, amount, receiver, relayerFee) => {
     const pushRemote = pipeContract.methods.processRemoteMessage(msgId, relayerFee, amount, tmpReceiver);
 
     await requestToContract(
-        process.env.ETH_SENDER, 
+        process.env.ETH_RELAYER_ADDRESS, 
         process.env.ETH_PIPE_CONTRACT_ADDRESS, 
-        process.env.ETH_SENDER_PRIVATE_KEY,
+        process.env.ETH_RELAYER_PRIVATE_KEY,
         pushRemote.encodeABI(),
         process.env.PUSH_REMOTE_GAS_LIMIT);
 }

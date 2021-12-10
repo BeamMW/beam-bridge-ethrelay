@@ -22,16 +22,16 @@ const options = program.opts();
 
 lockEthereum = async (amount, pubkey, relayerFee) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
-    console.log('sender: ', process.env.ETH_SENDER)
+    console.log('sender: ', process.env.ETH_RELAYER_ADDRESS)
     // convert to wei
     const total = web3.utils.toWei((10*(amount + relayerFee)).toString(), 'gwei');
 
     const lockTx = pipeContract.methods.sendFunds(amount.toString(), relayerFee.toString(), pubkey);
 
     let lockTxReceipt = await eth_utils.requestToContract(
-        process.env.ETH_SENDER,
+        process.env.ETH_RELAYER_ADDRESS,
         process.env.ETH_PIPE_CONTRACT_ADDRESS,
-        process.env.ETH_SENDER_PRIVATE_KEY,
+        process.env.ETH_RELAYER_PRIVATE_KEY,
         lockTx.encodeABI(),
         // TODO roman.strilets change this parameter
         process.env.PUSH_REMOTE_GAS_LIMIT,
