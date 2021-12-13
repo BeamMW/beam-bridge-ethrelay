@@ -2,11 +2,11 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-import beam from "./utils/beam_utils.js";
+import * as beam from "./utils/beam_utils.js";
 import Web3  from "web3";
 import { program } from "commander";
-import  sqlite3 from "sqlite3";
-import sqlite from "sqlite";
+import sqlite3 from "sqlite3";
+import * as sqlite from "sqlite";
 import logger from "./logger.js"
 import PipeContract from "./utils/EthPipeContractABI.js";
 

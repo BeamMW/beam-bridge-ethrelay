@@ -21,7 +21,7 @@ services:
       - ETH_TOKEN_CONTRACT=$ETH_TOKEN_CONTRACT
       - ETH_RELAYER_PRIVATE_KEY=$ETH_RELAYER_PRIVATE_KEY
       - ETH_SIDE_DECIMALS=$ETH_SIDE_DECIMALS
-      - ETH_PIPE_CONTRACT_ABI_FILE=EthPipe.json
+      - ETH_PIPE_CONTRACT_ABI=EthPipe.json
 
   eth2beam_relay:
     env_file: ./docker.env
@@ -40,7 +40,7 @@ services:
       - ETH_TOKEN_CONTRACT=$ETH_TOKEN_CONTRACT
       - ETH_RELAYER_PRIVATE_KEY=$ETH_RELAYER_PRIVATE_KEY
       - ETH_SIDE_DECIMALS=$ETH_SIDE_DECIMALS
-      - ETH_PIPE_CONTRACT_ABI_FILE=EthPipe.json
+      - ETH_PIPE_CONTRACT_ABI=EthPipe.json
 
   beam2usdt_relay:
     build:
