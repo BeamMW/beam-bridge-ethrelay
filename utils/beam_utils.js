@@ -12,7 +12,7 @@ const BEAM_MAX_DECIMALS = 8;
 function baseRequest(method, params, processResult) {
     return new Promise((resolve, reject) => {
         let accumulated = '';
-        let options = {
+        const options = {
             host: process.env.BEAM_WALLET_API_HOST,
             path: process.env.BEAM_WALLET_API_HTPP_PATH,
             port: process.env.BEAM_WALLET_API_PORT,
@@ -20,7 +20,7 @@ function baseRequest(method, params, processResult) {
             timeout: 5000,
         };
 
-        let callback = (response) => {
+        const callback = (response) => {
             response.on('data', (chunk) => {
                 accumulated += chunk;
             });
@@ -67,7 +67,7 @@ const getStatusTx = (txId) => {
             txId: txId
         },
         (data) => {
-            let json = JSON.parse(data);
+            const json = JSON.parse(data);
 
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
@@ -85,7 +85,7 @@ const getBlockDetails = (height) => {
             height: height
         },
         (data) => {
-            let json = JSON.parse(data);
+            const json = JSON.parse(data);
 
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
@@ -101,7 +101,7 @@ const walletStatus = () => {
         'wallet_status',
         {},
         (data) => {
-            let json = JSON.parse(data);
+            const json = JSON.parse(data);
 
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
@@ -113,46 +113,46 @@ const walletStatus = () => {
 }
 
 const bridgePushRemote = (msgId, amount, receiver, relayerFee) => {
-    let args = 'action=push_remote,cid=' + process.env.BEAM_PIPE_CID;
-    args += ',msgId=' + msgId;
-    args += ',amount=' + amount;
-    args += ',receiver=' + receiver;
-    args += ',relayerFee=' + relayerFee;
+    const args = `action=push_remote,cid=${process.env.BEAM_PIPE_CID},msgId=${msgId},amount=${amount},receiver=${receiver},relayerFee=${relayerFee}`;
 
-    return baseShaderRequest(process.env.BEAM_PIPE_APP_PATH, args, (data) => {
-        let res = JSON.parse(data);
-        if (res.hasOwnProperty('error')) {
-            // TODO roman.strilets need to check
-            throw new Error(data);
-        }
-
-        let output = JSON.parse(res['result']['output']);
-        let isExist = false;
-        if (output.hasOwnProperty('error')) {
-            if (output['error'] == 'msg is exist') {
-                isExist = true;
-            } else {
+    return baseShaderRequest(
+        process.env.BEAM_PIPE_APP_PATH,
+        args,
+        (data) => {
+            const res = JSON.parse(data);
+            if (res.hasOwnProperty('error')) {
                 // TODO roman.strilets need to check
-                throw new Error(output['error']);
+                throw new Error(data);
             }
-        }
 
-        return { isExist: isExist, txid: res['result']['txid'] };
-    });
+            const output = JSON.parse(res['result']['output']);
+            let isExist = false;
+            if (output.hasOwnProperty('error')) {
+                if (output['error'] == 'msg is exist') {
+                    isExist = true;
+                } else {
+                    // TODO roman.strilets need to check
+                    throw new Error(output['error']);
+                }
+            }
+
+            return { isExist: isExist, txid: res['result']['txid'] };
+        }
+    );
 };
 
 const getUserPubkey = () => {
     return baseShaderRequest(
         process.env.BEAM_PIPE_APP_PATH,
-        'role=user,action=get_pk,cid=' + process.env.BEAM_PIPE_CID,
+        `role=user,action=get_pk,cid=${process.env.BEAM_PIPE_CID}`,
         (data) => {
-            let json = JSON.parse(data);
+            const json = JSON.parse(data);
 
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
             }
 
-            let output = JSON.parse(json['result']['output']);
+            const output = JSON.parse(json['result']['output']);
             return output['pk'];
         }
     );
@@ -164,8 +164,8 @@ const waitTx = async (txId) => {
     }
     do {
         // TODO roman.strilets maybe should process exception
-        let result = await getStatusTx(txId);
-        let status = result['result']['status'];
+        const result = await getStatusTx(txId);
+        const status = result['result']['status'];
 
         if (status == TX_STATUS_COMPLETED || status == TX_STATUS_FAILED) {
             return status;
@@ -175,37 +175,34 @@ const waitTx = async (txId) => {
 }
 
 const getLocalMsgCount = () => {
-    let args = 'action=local_msg_count,cid=' + process.env.BEAM_PIPE_CID;
     return baseShaderRequest(
         process.env.BEAM_PIPE_APP_PATH,
-        args,
+        `action=local_msg_count,cid=${process.env.BEAM_PIPE_CID}`,
         (data) => {
-            let json = JSON.parse(data);
+            const json = JSON.parse(data);
 
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
             }
 
-            let output = JSON.parse(json['result']['output']);
+            const output = JSON.parse(json['result']['output']);
             return output['count'];
         }
     );
 };
 
 const getLocalMsg = (msgId) => {
-    let args = 'role=manager,action=local_msg,cid=' + process.env.BEAM_PIPE_CID;
-    args += ',msgId=' + msgId;
     return baseShaderRequest(
         process.env.BEAM_PIPE_APP_PATH,
-        args,
+        `role=manager,action=local_msg,cid=${process.env.BEAM_PIPE_CID},msgId=${msgId}`,
         (data) => {
-            let json = JSON.parse(data);
+            const json = JSON.parse(data);
 
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
             }
 
-            let output = JSON.parse(json['result']['output']);
+            const output = JSON.parse(json['result']['output']);
             return {
                 'receiver': output['receiver'],
                 'amount': output['amount'],

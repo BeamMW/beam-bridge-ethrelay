@@ -9,8 +9,8 @@ const pipeContract = new web3.eth.Contract(
 );
 
 export const requestToContract = async (sender, receiver, privateKey, abi, gasLimit, total = 0) => {
-    let nonce = await web3.eth.getTransactionCount(sender);
-    let signedTx = await web3.eth.accounts.signTransaction({
+    const nonce = await web3.eth.getTransactionCount(sender);
+    const signedTx = await web3.eth.accounts.signTransaction({
         from: sender,
         to: receiver,
         data: abi,
@@ -20,11 +20,9 @@ export const requestToContract = async (sender, receiver, privateKey, abi, gasLi
     }, privateKey);
 
     try {
-        let createReceipt = await web3.eth.sendSignedTransaction(
+        return await web3.eth.sendSignedTransaction(
             signedTx.rawTransaction
         );
-
-        return createReceipt;
     } catch (err) {
         logger.error(`requestToContract is failed`);
         throw err;

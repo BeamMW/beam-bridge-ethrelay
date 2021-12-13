@@ -4,7 +4,7 @@ dotenv.config();
 
 import { execFile } from "child_process";
 import * as beam from "./../utils/beam_utils.js";
-import {program} from "commander";
+import { program } from "commander";
 import logger from "./../logger.js"
 
 /**
@@ -55,7 +55,7 @@ async function walletListen(fileName, path, duration = 5000) {
 async function deployToken(tokenName) {
     await walletListen(process.env.WALLET_CLI_PATH, process.env.WALLET_CLI_WORK_DIR);
 
-    let params = commonParams.concat([
+    const params = commonParams.concat([
         `shader`,
         `--shader_app_file=${process.env.TOKEN_APP_PATH}`,
         `--shader_args=action=create,metadata=STD:SCH_VER=1;N=${tokenName} Coin;SN=${tokenName};UN=${tokenName};NTHUN=AGROTH`,
@@ -68,7 +68,7 @@ async function deployToken(tokenName) {
 async function deployPipe(tokenCID, aid) {
     await walletListen(process.env.WALLET_CLI_PATH, process.env.WALLET_CLI_WORK_DIR);
 
-    let params = commonParams.concat([
+    const params = commonParams.concat([
         `shader`,
         `--shader_app_file=${process.env.PIPE_APP_PATH}`,
         `--shader_args=action=create,tokenCID=${tokenCID},tokenAID=${aid}`,
@@ -83,15 +83,15 @@ function getLastCID(shader_app) {
         shader_app,
         'action=view',
         (data) => {
-            let json = JSON.parse(data);
+            const json = JSON.parse(data);
 
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
             }
 
-            let output = JSON.parse(json['result']['output']);
+            const output = JSON.parse(json['result']['output']);
             if ('contracts' in output && output['contracts'].length) {
-                let contracts = output['contracts'];
+                const contracts = output['contracts'];
                 let maxHeight = contracts[0]['Height'];
                 let result = contracts[0]['cid'];
                 for (const contract of contracts) {
@@ -108,11 +108,11 @@ function getLastCID(shader_app) {
 }
 
 async function shaderRequestWithTX(shader_app, args) {
-    let txid = await beam.baseShaderRequest(
+    const txid = await beam.baseShaderRequest(
         shader_app,
         args,
         (data) => {
-            let json = JSON.parse(data);
+            const json = JSON.parse(data);
 
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
@@ -129,53 +129,53 @@ async function shaderRequestWithTX(shader_app, args) {
 }
 
 async function initTokenOwnerPublicKey(tokenCID) {
-    let args = 'action=init,cid=' + tokenCID;
+    const args = `action=init,cid=${tokenCID}`;
     await shaderRequestWithTX(process.env.API_TOKEN_APP_PATH, args);
 }
 
 function getTokenAssetID(tokenCID) {
-    let args = 'action=get_aid,cid=' + tokenCID;
+    const args = `action=get_aid,cid=${tokenCID}`;
     return beam.baseShaderRequest(
         process.env.API_TOKEN_APP_PATH,
         args,
         (data) => {
-            let json = JSON.parse(data);
+            const json = JSON.parse(data);
 
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
             }
 
-            let output = JSON.parse(json['result']['output']);
+            const output = JSON.parse(json['result']['output']);
             return output['aid'];
         }
     );
 }
 
 async function changeTokenManager(tokenCID, manager) {
-    let args = `action=change_manager,cid=${tokenCID},manager=${manager}`;
+    const args = `action=change_manager,cid=${tokenCID},manager=${manager}`;
     await shaderRequestWithTX(process.env.API_TOKEN_APP_PATH, args);
 }
 
 function getPipePublicKey(pipeCID) {
-    let args = 'action=get_pk,cid=' + pipeCID;
+    const args = `action=get_pk,cid=${pipeCID}`;
     return beam.baseShaderRequest(
         process.env.API_PIPE_APP_PATH,
         args,
         (data) => {
-            let json = JSON.parse(data);
+            const json = JSON.parse(data);
 
             if (json.hasOwnProperty('error')) {
                 throw new Error(data);
             }
 
-            let output = JSON.parse(json['result']['output']);
+            const output = JSON.parse(json['result']['output']);
             return output['pk'];
         }
     );
 }
 
 async function setPipeRelayer(pipeCID, relayer) {
-    let args = `action=set_relayer,cid=${pipeCID},relayer=${relayer}`;
+    const args = `action=set_relayer,cid=${pipeCID},relayer=${relayer}`;
     await shaderRequestWithTX(process.env.API_PIPE_APP_PATH, args);
 }
 
@@ -194,7 +194,7 @@ async function setPipeRelayer(pipeCID, relayer) {
     }
 
     // 2) get last token cid
-    let tokenCID = await getLastCID(process.env.API_TOKEN_APP_PATH);
+    const tokenCID = await getLastCID(process.env.API_TOKEN_APP_PATH);
 
     if (!tokenCID) {
         throw new Error("Failed to get tokenCID")
@@ -205,7 +205,7 @@ async function setPipeRelayer(pipeCID, relayer) {
     await initTokenOwnerPublicKey(tokenCID);
 
     // 4) get asset id for the token contract
-    let aid = await getTokenAssetID(tokenCID);
+    const aid = await getTokenAssetID(tokenCID);
     logger.info(`AID: ${aid}`);
 
     // 5) deploy pipe
@@ -216,7 +216,7 @@ async function setPipeRelayer(pipeCID, relayer) {
     }
 
     // 6) get CID of the pipe
-    let pipeCID = await getLastCID(process.env.API_PIPE_APP_PATH);
+    const pipeCID = await getLastCID(process.env.API_PIPE_APP_PATH);
     if (!pipeCID) {
         throw new Error("Failed to get pipeCID")
     }
@@ -226,7 +226,7 @@ async function setPipeRelayer(pipeCID, relayer) {
     await changeTokenManager(tokenCID, pipeCID);
 
     // 8) generate relayer's publicKey
-    let relayerPublicKey = await getPipePublicKey(pipeCID);
+    const relayerPublicKey = await getPipePublicKey(pipeCID);
     if (!relayerPublicKey) {
         throw new Error("Failed to get relayerPublicKey")
     }

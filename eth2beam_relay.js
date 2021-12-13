@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import * as beam from "./utils/beam_utils.js";
-import Web3  from "web3";
+import Web3 from "web3";
 import { program } from "commander";
 import sqlite3 from "sqlite3";
 import * as sqlite from "sqlite";
@@ -55,7 +55,7 @@ async function onGotNewBlock(blockHeader) {
     const minBlockNumber =
         blockHeader["number"] - process.env.ETH_MIN_CONFRIMATIONS;
     const filterSql = `SELECT body FROM ${EVENTS_TABLE} WHERE processed = 0 AND block <= ${minBlockNumber}`;
-    let rows = await db.all(filterSql);
+    const rows = await db.all(filterSql);
 
     // TODO
 
@@ -95,7 +95,7 @@ async function processEvent(event) {
         if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
             const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
             // check that amount contains this count of zeros at the end
-            let endedStr = "0".repeat(diff);
+            const endedStr = "0".repeat(diff);
             if (!amount.endsWith(endedStr) || !relayerFee.endsWith(endedStr)) {
                 throw new Error(`Unexpected amounts.`);
             }
@@ -140,8 +140,6 @@ async function processEvent(event) {
         // Update event state
         await onProcessedEvent(event);
     } catch (err) {
-        // TODO roman.strilets change this code
-        // let txIDstr = pushRemoteTxID ? `, txID - ${pushRemoteTxID}` : '';
         logger.error(
             `Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}. ${err}`
         );
@@ -219,7 +217,7 @@ async function getStartBlockFromDB() {
     );
 
     // subscribe to Pipe.NewLocalMessage
-    let eventSubscription = pipeContract.events
+    const eventSubscription = pipeContract.events
         .NewLocalMessage(
             {
                 fromBlock: startBlock,
@@ -250,7 +248,7 @@ async function getStartBlockFromDB() {
             }
         });
 
-    let newBlockSubscription = web3.eth
+    const newBlockSubscription = web3.eth
         .subscribe("newBlockHeaders")
         .on("connected", function (subscriptionId) {
             logger.info(

@@ -27,10 +27,7 @@ function saveSettings(value) {
 
 async function requestHeight() {
     try {
-        let status = await beam.walletStatus();
-        /*
-        it is not necessary to use let if you will not reassign variable
-        */
+        const status = await beam.walletStatus();
         return status["current_height"];
     } catch (e) {
         logger.error(`There is Beam wallet status problem. ${e}`);
@@ -42,7 +39,7 @@ function baseGetRequest(url, processResult) {
     return new Promise((resolve, reject) => {
         let accumulated = "";
 
-        let callback = (response) => {
+        const callback = (response) => {
             // same as above
             response.on("data", (chunk) => {
                 accumulated += chunk;
@@ -92,14 +89,14 @@ async function isValidRelayerFee(relayerFee) {
 }
 
 async function monitorBridge() {
-    let currentHeight = await requestHeight();
+    const currentHeight = await requestHeight();
 
     if (currentHeight > 0 && currentHeight > process.env.BEAM_MIN_CONFIRMATIONS) {
         try {
-            let count = await beam.getLocalMsgCount();
+            const count = await beam.getLocalMsgCount();
 
             while (msgId <= count) {
-                let localMsg = await beam.getLocalMsg(msgId);
+                const localMsg = await beam.getLocalMsg(msgId);
 
                 if (
                     localMsg["height"] >
@@ -162,8 +159,8 @@ async function monitorBridge() {
         saveSettings(msgId);
     } else {
         try {
-            let data = fs.readFileSync(process.env.BEAM2ETH_SETTINGS_FILE);
-            let obj = JSON.parse(data);
+            const data = fs.readFileSync(process.env.BEAM2ETH_SETTINGS_FILE);
+            const obj = JSON.parse(data);
             msgId = obj["startMsgId"];
         } catch (e) { }
     }

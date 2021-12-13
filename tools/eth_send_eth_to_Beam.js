@@ -30,7 +30,7 @@ lockEthereum = async (amount, pubkey, relayerFee) => {
 
     const lockTx = pipeContract.methods.sendFunds(amount.toString(), relayerFee.toString(), pubkey);
 
-    let lockTxReceipt = await eth_utils.requestToContract(
+    const lockTxReceipt = await eth_utils.requestToContract(
         process.env.ETH_RELAYER_ADDRESS,
         process.env.ETH_PIPE_CONTRACT_ADDRESS,
         process.env.ETH_RELAYER_PRIVATE_KEY,
@@ -39,7 +39,6 @@ lockEthereum = async (amount, pubkey, relayerFee) => {
         process.env.ETH_PIPE_PUSH_REMOTE_GAS_LIMIT,
         total);
 
-    //console.log(lockTxReceipt);
     return lockTxReceipt;
 }
 
@@ -49,8 +48,7 @@ lockEthereum = async (amount, pubkey, relayerFee) => {
     const relayerFee = options.fee;
 
     // lock Ethereums' on Ethereum chain
-    let receipt = await lockEthereum(amount, process.env.BEAM_PIPE_USER_PUBLIC_KEY, relayerFee);
+    await lockEthereum(amount, process.env.BEAM_PIPE_USER_PUBLIC_KEY, relayerFee);
 
-    //console.log("TX receipt: ", receipt);
     console.log("'sendFunds' is finished.")
 })();
