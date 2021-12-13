@@ -2,10 +2,11 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-import eth_utils from "./../utils/eth_utils";
+import * as eth_utils from "./../utils/eth_utils.js";
 import Web3 from "web3";
-import PipeContract from "../utils/EthPipeContractABI";
+import PipeContract from "./../utils/EthPipeContractABI.js";
 import ERC20Abi from "human-standard-token-abi";
+import {program } from "commander";
 
 let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
 const tokenContract = new web3.eth.Contract(
@@ -17,8 +18,6 @@ const pipeContract = new web3.eth.Contract(
     process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
-const { program } = require('commander');
-
 program.option('-a, --amount <number>', 'amount of tokens to send', 200);
 program.option('-f, --fee <number>', 'relayer fee', 10);
 
@@ -26,7 +25,7 @@ program.parse(process.argv);
 
 const options = program.opts();
 
-lockToken = async (amount, pubkey, relayerFee) => {
+let lockToken = async (amount, pubkey, relayerFee) => {
     console.log('provider: ', process.env.ETH_HTTP_PROVIDER)
     console.log('sender: ', process.env.ETH_RELAYER_ADDRESS)
     const approveTx = tokenContract.methods.approve(process.env.ETH_PIPE_CONTRACT_ADDRESS, amount + relayerFee);

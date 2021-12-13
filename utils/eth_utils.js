@@ -7,7 +7,7 @@ const pipeContract = new web3.eth.Contract(
     process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
-const requestToContract = async (sender, receiver, privateKey, abi, gasLimit, total = 0) => {
+export const requestToContract = async (sender, receiver, privateKey, abi, gasLimit, total = 0) => {
     let nonce = await web3.eth.getTransactionCount(sender);
     let signedTx = await web3.eth.accounts.signTransaction({
         from: sender,
@@ -32,7 +32,7 @@ const requestToContract = async (sender, receiver, privateKey, abi, gasLimit, to
     }
 }
 
-const processRemoteMessage = async (msgId, amount, receiver, relayerFee) => {
+export const processRemoteMessage = async (msgId, amount, receiver, relayerFee) => {
     const tmpReceiver = '0x' + receiver;
     const pushRemote = pipeContract.methods.processRemoteMessage(msgId, relayerFee, amount, tmpReceiver);
 
@@ -44,7 +44,3 @@ const processRemoteMessage = async (msgId, amount, receiver, relayerFee) => {
         process.env.ETH_PIPE_PUSH_REMOTE_GAS_LIMIT);
 }
 
-module.exports = {
-    requestToContract,
-    processRemoteMessage
-}

@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import { execFile } from "child_process";
-import beam from "./../utils/beam_utils.js";
+import * as beam from "./../utils/beam_utils.js";
 import {program} from "commander";
 
 /**

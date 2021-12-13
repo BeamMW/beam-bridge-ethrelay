@@ -2,8 +2,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-import beam from "./utils/beam_utils.js";
-import eth from "./utils/eth_utils.js";
+import * as beam from "./utils/beam_utils.js";
+import * as eth from "./utils/eth_utils.js";
 import { program } from "commander";
 import https from "https";
 import fs from "fs";

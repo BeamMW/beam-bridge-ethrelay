@@ -1,4 +1,9 @@
-const PipeContract = require(process.env.ETH_PIPE_CONTRACT_ABI);
-//import PipeContract from process.env.ETH_PIPE_CONTRACT_ABI
+import dotenv from "dotenv";
 
-module.exports = PipeContract;
+dotenv.config();
+
+import fs from "fs";
+
+const PipeContract = JSON.parse(fs.readFileSync(process.cwd() + '/utils/' + process.env.ETH_PIPE_CONTRACT_ABI));
+
+export default PipeContract;

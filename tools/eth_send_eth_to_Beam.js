@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-import eth_utils from "./../utils/eth_utils.js";
+import * as eth_utils from "./../utils/eth_utils.js";
 import Web3 from "web3";
 import PipeContract from "./../utils/EthPipeContractABI.js";
 

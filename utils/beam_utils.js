@@ -215,7 +215,7 @@ const getLocalMsg = (msgId) => {
     );
 };
 
-module.exports = {
+export {
     baseShaderRequest,
     getStatusTx,
     getBlockDetails,
