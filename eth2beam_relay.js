@@ -1,14 +1,14 @@
-require("dotenv").config();
+import dotenv from "dotenv";
 
-const beam = require("./utils/beam_utils.js");
-const Web3 = require("web3");
-const fs = require("fs");
-const { program } = require("commander");
-const sqlite3 = require("sqlite3");
-const sqlite = require("sqlite");
-const logger = require("./logger.js");
+dotenv.config();
 
-const PipeContract = require("./utils/EthPipeContractABI.js");
+import beam from "./utils/beam_utils.js";
+import Web3  from "web3";
+import { program } from "commander";
+import  sqlite3 from "sqlite3";
+import sqlite from "sqlite";
+import logger from "./logger.js"
+import PipeContract from "./utils/EthPipeContractABI.js";
 
 const EVENTS_TABLE = "events";
 let db = undefined;

@@ -1,5 +1,5 @@
-const Web3 = require('web3');
-const PipeContract = require('./EthPipeContractABI.js');
+import Web3 from 'web3';
+import PipeContract from "./EthPipeContractABI.js";
 
 let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
 const pipeContract = new web3.eth.Contract(

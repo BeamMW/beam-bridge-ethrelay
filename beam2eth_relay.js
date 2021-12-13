@@ -1,16 +1,12 @@
-require("dotenv").config();
+import dotenv from "dotenv";
 
-const beam = require("./utils/beam_utils.js");
-const eth = require("./utils/eth_utils.js");
-const { program } = require("commander");
-const https = require("https");
+dotenv.config();
 
-/*
-if you add   "type": "module" in package.json you will be able to use
-imports instead of require. Require is an outdated way of modules import.
- */
-
-let fs = require("fs");
+import beam from "./utils/beam_utils.js";
+import eth from "./utils/eth_utils.js";
+import { program } from "commander";
+import https from "https";
+import fs from "fs";
 
 /*
 it is not necessary to use let if you will not reassign variable

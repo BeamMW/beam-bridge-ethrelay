@@ -1,5 +1,4 @@
-//const Net = require('net');
-const http = require('http');
+import http from "http";
 
 const TX_STATUS_PENDING = 0;
 const TX_STATUS_INPROGRESS = 1;

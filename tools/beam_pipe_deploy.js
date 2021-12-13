@@ -1,7 +1,10 @@
-require('dotenv').config();
-let exec = require('child_process').execFile;
-const beam = require('./../utils/beam_utils.js');
-const { program } = require('commander');
+import dotenv from "dotenv";
+
+dotenv.config();
+
+import { execFile } from "child_process";
+import beam from "./../utils/beam_utils.js";
+import {program} from "commander";
 
 /**
  * Function to execute exe
@@ -11,7 +14,7 @@ const { program } = require('commander');
  */
 function execute(fileName, params, path) {
     let promise = new Promise((resolve, reject) => {
-        exec(fileName, params, { cwd: path }, (err, data) => {
+        execFile(fileName, params, { cwd: path }, (err, data) => {
             if (err) reject(err);
             else resolve(data);
         });
@@ -38,7 +41,7 @@ async function walletListen(fileName, path, duration = 5000) {
     const params = commonParams.concat(['listen']);
 
     let promise = new Promise(async (resolve, reject) => {
-        let wallet = exec(fileName, params, { cwd: path }, (err, data) => {
+        let wallet = execFile(fileName, params, { cwd: path }, (err, data) => {
             // TODO: check error
             resolve(data);
         });

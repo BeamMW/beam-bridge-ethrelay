@@ -1,5 +1,5 @@
-const winston = require('winston')
-const jsonStringify = require('fast-safe-stringify');
+import winston from 'winston';
+import jsonStringify from "fast-safe-stringify";
 
 const logLikeFormat = {
     transform(info) {
