@@ -7,23 +7,12 @@ import * as eth from "./utils/eth_utils.js";
 import { program } from "commander";
 import https from "https";
 import fs from "fs";
+import logger from "./logger.js"
 
 /*
 it is not necessary to use let if you will not reassign variable
  */
 let msgId = 1;
-
-function currentTime() {
-    return (
-        "[" +
-        new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-        }) +
-        "] "
-    );
-}
 
 function saveSettings(value) {
     try {
@@ -44,9 +33,7 @@ async function requestHeight() {
         */
         return status["current_height"];
     } catch (e) {
-        // output to log
-        console.log("There is Beam wallet status problem");
-        console.log(e);
+        logger.error(`There is Beam wallet status problem. ${e}`);
     }
     return 0;
 }
@@ -141,11 +128,7 @@ async function monitorBridge() {
                 }
 
                 if (await isValidRelayerFee(relayerFee)) {
-                    console.log(
-                        currentTime(),
-                        "Processing of a new message has started. Message ID - ",
-                        msgId
-                    );
+                    logger.info(`Processing of a new message has started. Message ID - ${msgId}`);
 
                     await eth.processRemoteMessage(
                         msgId,
@@ -154,25 +137,14 @@ async function monitorBridge() {
                         relayerFee
                     );
 
-                    console.log(
-                        currentTime(),
-                        "The message was successfully transferred to the Ethereum. Message ID - ",
-                        msgId
-                    );
+                    logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${msgId}`);
                 } else {
-                    console.log(
-                        currentTime(),
-                        "Relayer fee is small! Message ID - ",
-                        msgId,
-                        ", realyerFee = ",
-                        relayerFee
-                    );
+                    logger.error(`Relayer fee is small! Message ID - ${msgId}, realyerFee = ${relayerFee}`);
                 }
                 saveSettings(++msgId);
             }
         } catch (e) {
-            console.log("Error:");
-            console.log(e);
+            logger.error(`Error: ${e}`);
         }
     }
 

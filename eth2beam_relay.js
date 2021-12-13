@@ -225,7 +225,6 @@ async function getStartBlockFromDB() {
                 fromBlock: startBlock,
             },
             function (error, event) {
-                /*console.log(event);*/
             }
         )
         .on("connected", function (subscriptionId) {

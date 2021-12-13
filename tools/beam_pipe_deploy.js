@@ -5,6 +5,7 @@ dotenv.config();
 import { execFile } from "child_process";
 import * as beam from "./../utils/beam_utils.js";
 import {program} from "commander";
+import logger from "./../logger.js"
 
 /**
  * Function to execute exe
@@ -184,7 +185,7 @@ async function setPipeRelayer(pipeCID, relayer) {
 
     const options = program.opts();
 
-    console.log('Start');
+    logger.info('Start');
     // 1) deploy new Token
     let result = await deployToken(options.token);
 
@@ -198,14 +199,14 @@ async function setPipeRelayer(pipeCID, relayer) {
     if (!tokenCID) {
         throw new Error("Failed to get tokenCID")
     }
-    console.log("TokenCID: " + tokenCID);
+    logger.info(`TokenCID: ${tokenCID}`);
 
     // 3) init owner publicKey for the token contract 
     await initTokenOwnerPublicKey(tokenCID);
 
     // 4) get asset id for the token contract
     let aid = await getTokenAssetID(tokenCID);
-    console.log("AID: " + aid);
+    logger.info(`AID: ${aid}`);
 
     // 5) deploy pipe
     result = await deployPipe(tokenCID, aid);
@@ -219,7 +220,7 @@ async function setPipeRelayer(pipeCID, relayer) {
     if (!pipeCID) {
         throw new Error("Failed to get pipeCID")
     }
-    console.log("PipeCID: " + pipeCID);
+    logger.info(`PipeCID: ${pipeCID}`);
 
     // 7) setup manager of the Token 
     await changeTokenManager(tokenCID, pipeCID);
@@ -229,10 +230,10 @@ async function setPipeRelayer(pipeCID, relayer) {
     if (!relayerPublicKey) {
         throw new Error("Failed to get relayerPublicKey")
     }
-    console.log("relayerPublicKey: " + relayerPublicKey);
+    logger.info(`relayerPublicKey: ${relayerPublicKey}`);
 
     // 9) setup new relayer for the Pipe
     await setPipeRelayer(pipeCID, relayerPublicKey);
 
-    console.log('End.')
+    logger.info(`End.`);
 })();

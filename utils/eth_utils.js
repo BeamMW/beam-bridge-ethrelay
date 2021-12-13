@@ -1,5 +1,6 @@
 import Web3 from 'web3';
 import PipeContract from "./EthPipeContractABI.js";
+import logger from "./../logger.js"
 
 let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
 const pipeContract = new web3.eth.Contract(
@@ -18,16 +19,14 @@ export const requestToContract = async (sender, receiver, privateKey, abi, gasLi
         nonce: nonce,
     }, privateKey);
 
-    //console.log('signed tx: ', signedTx);
     try {
         let createReceipt = await web3.eth.sendSignedTransaction(
             signedTx.rawTransaction
         );
 
-        //console.log('createReceipt: ', createReceipt);
         return createReceipt;
     } catch (err) {
-        console.log('requestToContract is failed');
+        logger.error(`requestToContract is failed`);
         throw err;
     }
 }
