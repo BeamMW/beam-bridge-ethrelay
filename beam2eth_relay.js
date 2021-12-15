@@ -8,10 +8,14 @@ import { program } from "commander";
 import https from "https";
 import fs from "fs";
 import logger from "./logger.js"
+import sqlite3 from "sqlite3";
+import * as sqlite from "sqlite";
 
 /*
 it is not necessary to use let if you will not reassign variable
  */
+const RESULTS_TABLE = "results";
+let db = undefined;
 let msgId = 1;
 
 function saveSettings(value) {
@@ -88,6 +92,85 @@ async function isValidRelayerFee(relayerFee) {
     return relayerFee >= estimatedRelayerFee;
 }
 
+async function addResult(msgId, details) {
+    const insertSql = `INSERT OR REPLACE INTO ${RESULTS_TABLE} (msgId, details) VALUES(?,?);`;
+    try {
+        return db.run(insertSql, [
+            msgId,
+            details
+        ]);
+    } catch (err) {
+        logger.error(`Failed to save result - ${err.message}`);
+        throw err;
+    }
+}
+
+async function processLocalMsg(msgId, currentHeight) {
+    let details;
+
+    for (let i = 1; i < 2; i++) {
+        details = 'success';
+        try {
+            const localMsg = await beam.getLocalMsg(msgId);
+
+            if (
+                localMsg["height"] >
+                currentHeight - process.env.BEAM_MIN_CONFIRMATIONS
+            ) {
+                return false;
+            }
+
+            let amount = localMsg["amount"].toString();
+            let relayerFee = localMsg["relayerFee"].toString();
+
+            if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
+                const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
+                amount = amount.padEnd(amount.length + diff, "0");
+                relayerFee = relayerFee.padEnd(relayerFee.length + diff, "0");
+            } else if (process.env.ETH_SIDE_DECIMALS < beam.BEAM_MAX_DECIMALS) {
+                const diff = beam.BEAM_MAX_DECIMALS - process.env.ETH_SIDE_DECIMALS;
+                // check that amount contains this count of zeros at the end
+                let endedStr = "0".repeat(diff);
+                if (!amount.endsWith(endedStr) || !relayerFee.endsWith(endedStr)) {
+                    details = `Unexpected amounts. Message ID - ${msgId}. Amount = ${amount}`;
+                    logger.error(details);
+                    break;
+                }
+                // remove zeros
+                amount = amount.slice(0, -diff);
+                relayerFee = relayerFee.slice(0, -diff);
+            }
+
+            logger.info('before isValidRelayerFee');
+
+            if (await isValidRelayerFee(relayerFee)) {
+                logger.info(`Processing of a new message has started. Message ID - ${msgId}`);
+
+                await eth.processRemoteMessage(
+                    msgId,
+                    amount,
+                    localMsg["receiver"],
+                    relayerFee
+                );
+
+                logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${msgId}`);
+            } else {
+                details = `Relayer fee is small! Message ID - ${msgId}, realyerFee = ${relayerFee}`;
+                logger.error(details);
+            }
+
+            break;
+        } catch (err) {
+            details = `Failed to push remote message #${msgId}. Attempt #${i}. Details: ${err}`;
+            logger.error(details);
+            console.log(err);
+        }
+    }
+
+    await addResult(msgId, details);
+    return true;
+}
+
 async function monitorBridge() {
     const currentHeight = await requestHeight();
 
@@ -96,47 +179,10 @@ async function monitorBridge() {
             const count = await beam.getLocalMsgCount();
 
             while (msgId <= count) {
-                const localMsg = await beam.getLocalMsg(msgId);
+                const processed = await processLocalMsg(msgId, currentHeight);
 
-                if (
-                    localMsg["height"] >
-                    currentHeight - process.env.BEAM_MIN_CONFIRMATIONS
-                ) {
+                if (!processed) {
                     break;
-                }
-
-                let amount = localMsg["amount"].toString();
-                let relayerFee = localMsg["relayerFee"].toString();
-
-                if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
-                    const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
-                    amount = amount.padEnd(amount.length + diff, "0");
-                    relayerFee = relayerFee.padEnd(relayerFee.length + diff, "0");
-                } else if (process.env.ETH_SIDE_DECIMALS < beam.BEAM_MAX_DECIMALS) {
-                    const diff = beam.BEAM_MAX_DECIMALS - process.env.ETH_SIDE_DECIMALS;
-                    // check that amount contains this count of zeros at the end
-                    let endedStr = "0".repeat(diff);
-                    if (!amount.endsWith(endedStr) || !relayerFee.endsWith(endedStr)) {
-                        throw new Error(`Unexpected amounts. Message ID - ${msgId}`);
-                    }
-                    // remove zeros
-                    amount = amount.slice(0, -diff);
-                    relayerFee = relayerFee.slice(0, -diff);
-                }
-
-                if (await isValidRelayerFee(relayerFee)) {
-                    logger.info(`Processing of a new message has started. Message ID - ${msgId}`);
-
-                    await eth.processRemoteMessage(
-                        msgId,
-                        amount,
-                        localMsg["receiver"],
-                        relayerFee
-                    );
-
-                    logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${msgId}`);
-                } else {
-                    logger.error(`Relayer fee is small! Message ID - ${msgId}, realyerFee = ${relayerFee}`);
                 }
                 saveSettings(++msgId);
             }
@@ -149,6 +195,20 @@ async function monitorBridge() {
 }
 
 (async () => {
+    // open the database
+    db = await sqlite.open({
+        filename: process.env.BEAM2ETH_DB_PATH,
+        mode: sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
+        driver: sqlite3.Database,
+    });
+
+    const createTableSql = `CREATE TABLE IF NOT EXISTS ${RESULTS_TABLE} 
+                            (msgId INTEGER NOT NULL
+                            ,details TEXT NOT NULL
+                            ,UNIQUE(msgId));`;
+
+    await db.exec(createTableSql);
+
     program.option("-m, --msgId <number>", "start message id");
     program.parse(process.argv);
 

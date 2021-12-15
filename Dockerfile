@@ -29,6 +29,7 @@ ENV ETH_MIN_CONFRIMATIONS=1
 ENV ETH_PIPE_PUSH_REMOTE_GAS_LIMIT=150000
 ENV BEAM2ETH_SETTINGS_FILE="/home/ethrelay/data/beam2eth_settings.json"
 ENV ETH2BEAM_DB_PATH="/home/ethrelay/data/eth2beam.db"
+ENV BEAM2ETH_DB_PATH="/home/ethrelay/data/beam2eth.db"
 ENV ETH_PIPE_CONTRACT_ABI=EthERC20Pipe.json
 
 ENV RELAYER_SCRIPT="beam2eth_relay.js"
