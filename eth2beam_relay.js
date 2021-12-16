@@ -14,18 +14,16 @@ const EVENTS_TABLE = "events";
 let db = undefined;
 let eventsInProgress = new Set();
 
-// it is not necessary to use await before return
 async function addEvent(event) {
-    const insertSql = `INSERT INTO ${EVENTS_TABLE} (block, txHash, body) VALUES(?,?,?);`;
+    // ignore if event is exist in db
+    const insertSql = `INSERT OR IGNORE INTO ${EVENTS_TABLE} (block, txHash, body) VALUES(?,?,?);`;
     try {
-        return await db.run(insertSql, [
+        return db.run(insertSql, [
             event["blockNumber"],
             event["transactionHash"],
             JSON.stringify(event),
         ]);
     } catch (err) {
-        // ignore if event is exist in db
-        if (err.hasOwnProperty("errno") && err.errno == 19) return;
         logger.error("Failed to save event - " + err.message, " Event: ", event);
         throw err;
     }
@@ -34,7 +32,7 @@ async function addEvent(event) {
 async function removeEvent(event) {
     const deleteSql = `DELETE FROM ${EVENTS_TABLE} WHERE block=${event["blockNumber"]} AND txHash='${event["transactionHash"]}';`;
     try {
-        return await db.run(deleteSql);
+        return db.run(deleteSql);
     } catch (err) {
         logger.error("Failed to delete event - " + err.message, " Event: ", event);
         throw err;
@@ -44,7 +42,7 @@ async function removeEvent(event) {
 async function onProcessedEvent(event) {
     const updateSql = `UPDATE ${EVENTS_TABLE} SET processed=1 WHERE block=${event["blockNumber"]} AND txHash='${event["transactionHash"]}'`;
     try {
-        return await db.run(updateSql);
+        return db.run(updateSql);
     } catch (err) {
         logger.error("Failed to update event - " + err.message, " Event: ", event);
         throw err;

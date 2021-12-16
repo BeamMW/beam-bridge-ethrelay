@@ -20,7 +20,7 @@ export const requestToContract = async (sender, receiver, privateKey, abi, gasLi
     }, privateKey);
 
     try {
-        return await web3.eth.sendSignedTransaction(
+        return web3.eth.sendSignedTransaction(
             signedTx.rawTransaction
         );
     } catch (err) {
