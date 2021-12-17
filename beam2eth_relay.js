@@ -15,6 +15,13 @@ import * as sqlite from "sqlite";
 it is not necessary to use let if you will not reassign variable
  */
 const MESSAGES_TABLE = "messages";
+const ResultStatus = {
+    None: 0,
+    Success: 1,
+    UnexpectedAmount: 2,
+    SmallFee: 3,
+    Other: 4
+};
 let db = undefined;
 let msgId = 1;
 
@@ -93,13 +100,10 @@ async function isValidRelayerFee(relayerFee) {
 }
 
 async function addMessage(id, localMsg) {
-    const insertSql = `INSERT OR REPLACE INTO ${MESSAGES_TABLE} (msgId, processed, result, details, receiver, amount, relayerFee) VALUES(?,?,?,?,?,?,?);`;
+    const insertSql = `INSERT OR IGNORE INTO ${MESSAGES_TABLE} (msgId, receiver, amount, relayerFee) VALUES(?,?,?,?);`;
     try {
         return db.run(insertSql, [
             id,
-            0,
-            0,
-            "",
             localMsg["receiver"],
             localMsg["amount"],
             localMsg["relayerFee"]
@@ -126,7 +130,7 @@ async function processLocalMsg(localMsg) {
 
     for (let i = 1; i < 2; i++) {
         details = 'success';
-        result = 1;
+        result = ResultStatus.Success;
         try {
             let amount = localMsg["amount"].toString();
             let relayerFee = localMsg["relayerFee"].toString();
@@ -141,7 +145,7 @@ async function processLocalMsg(localMsg) {
                 let endedStr = "0".repeat(diff);
                 if (!amount.endsWith(endedStr) || !relayerFee.endsWith(endedStr)) {
                     details = `Unexpected amounts. Message ID - ${localMsg["msgId"]}. Amount = ${amount}`;
-                    result = 2;
+                    result = ResultStatus.UnexpectedAmount;
                     logger.error(details);
                     break;
                 }
@@ -163,14 +167,14 @@ async function processLocalMsg(localMsg) {
                 logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${localMsg["msgId"]}`);
             } else {
                 details = `Relayer fee is small! Message ID - ${localMsg["msgId"]}, realyerFee = ${relayerFee}`;
-                result = 3;
+                result = ResultStatus.SmallFee;
                 logger.error(details);
             }
 
             break;
         } catch (err) {
             details = `Failed to push remote message #${localMsg["msgId"]}. Attempt #${i}. Details: ${err}`;
-            result = 4;
+            result = ResultStatus.Other;
             logger.error(details);
         }
     }
@@ -226,7 +230,7 @@ async function monitorBridge() {
                             (msgId INTEGER NOT NULL
                             ,processed INTEGER NOT NULL DEFAULT 0
                             ,result INTEGER NOT NULL DEFAULT 0
-                            ,details TEXT NOT NULL
+                            ,details TEXT NOT NULL DEFAULT ''
                             ,receiver TEXT NOT NULL
                             ,amount INTEGER NOT NULL DEFAULT 0
                             ,relayerFee INTEGER NOT NULL DEFAULT 0
