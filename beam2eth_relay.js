@@ -14,7 +14,7 @@ import * as sqlite from "sqlite";
 /*
 it is not necessary to use let if you will not reassign variable
  */
-const RESULTS_TABLE = "results";
+const MESSAGES_TABLE = "messages";
 let db = undefined;
 let msgId = 1;
 
@@ -92,12 +92,17 @@ async function isValidRelayerFee(relayerFee) {
     return relayerFee >= estimatedRelayerFee;
 }
 
-async function addResult(msgId, details) {
-    const insertSql = `INSERT OR REPLACE INTO ${RESULTS_TABLE} (msgId, details) VALUES(?,?);`;
+async function addMessage(id, localMsg) {
+    const insertSql = `INSERT OR REPLACE INTO ${MESSAGES_TABLE} (msgId, processed, result, details, receiver, amount, relayerFee) VALUES(?,?,?,?,?,?,?);`;
     try {
         return db.run(insertSql, [
-            msgId,
-            details
+            id,
+            0,
+            0,
+            "",
+            localMsg["receiver"],
+            localMsg["amount"],
+            localMsg["relayerFee"]
         ]);
     } catch (err) {
         logger.error(`Failed to save result - ${err.message}`);
@@ -105,21 +110,24 @@ async function addResult(msgId, details) {
     }
 }
 
-async function processLocalMsg(msgId, currentHeight) {
+async function onProcessedLocalMsg(id, result, details) {
+    const updateSql = `UPDATE ${MESSAGES_TABLE} SET processed=1, result=${result}, details='${details}' WHERE msgId=${id}`;
+    try {
+        return db.run(updateSql);
+    } catch (err) {
+        logger.error("Failed to update message - " + err.message, " msgID: ", id);
+        throw err;
+    }
+}
+
+async function processLocalMsg(localMsg) {
     let details;
+    let result;
 
     for (let i = 1; i < 2; i++) {
         details = 'success';
+        result = 1;
         try {
-            const localMsg = await beam.getLocalMsg(msgId);
-
-            if (
-                localMsg["height"] >
-                currentHeight - process.env.BEAM_MIN_CONFIRMATIONS
-            ) {
-                return false;
-            }
-
             let amount = localMsg["amount"].toString();
             let relayerFee = localMsg["relayerFee"].toString();
 
@@ -132,7 +140,8 @@ async function processLocalMsg(msgId, currentHeight) {
                 // check that amount contains this count of zeros at the end
                 let endedStr = "0".repeat(diff);
                 if (!amount.endsWith(endedStr) || !relayerFee.endsWith(endedStr)) {
-                    details = `Unexpected amounts. Message ID - ${msgId}. Amount = ${amount}`;
+                    details = `Unexpected amounts. Message ID - ${localMsg["msgId"]}. Amount = ${amount}`;
+                    result = 2;
                     logger.error(details);
                     break;
                 }
@@ -141,10 +150,8 @@ async function processLocalMsg(msgId, currentHeight) {
                 relayerFee = relayerFee.slice(0, -diff);
             }
 
-            logger.info('before isValidRelayerFee');
-
             if (await isValidRelayerFee(relayerFee)) {
-                logger.info(`Processing of a new message has started. Message ID - ${msgId}`);
+                logger.info(`Processing of a new message has started. Message ID - ${localMsg["msgId"]}`);
 
                 await eth.processRemoteMessage(
                     msgId,
@@ -153,22 +160,22 @@ async function processLocalMsg(msgId, currentHeight) {
                     relayerFee
                 );
 
-                logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${msgId}`);
+                logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${localMsg["msgId"]}`);
             } else {
-                details = `Relayer fee is small! Message ID - ${msgId}, realyerFee = ${relayerFee}`;
+                details = `Relayer fee is small! Message ID - ${localMsg["msgId"]}, realyerFee = ${relayerFee}`;
+                result = 3;
                 logger.error(details);
             }
 
             break;
         } catch (err) {
-            details = `Failed to push remote message #${msgId}. Attempt #${i}. Details: ${err}`;
+            details = `Failed to push remote message #${localMsg["msgId"]}. Attempt #${i}. Details: ${err}`;
+            result = 4;
             logger.error(details);
-            console.log(err);
         }
     }
 
-    await addResult(msgId, details);
-    return true;
+    await onProcessedLocalMsg(localMsg["msgId"], result, details);
 }
 
 async function monitorBridge() {
@@ -179,12 +186,25 @@ async function monitorBridge() {
             const count = await beam.getLocalMsgCount();
 
             while (msgId <= count) {
-                const processed = await processLocalMsg(msgId, currentHeight);
+                const localMsg = await beam.getLocalMsg(msgId);
 
-                if (!processed) {
+                if (
+                    localMsg["height"] >
+                    currentHeight - process.env.BEAM_MIN_CONFIRMATIONS
+                ) {
                     break;
                 }
+
+                await addMessage(msgId, localMsg);
                 saveSettings(++msgId);
+            }
+
+            // select unprocessed messages
+            const filterSql = `SELECT * FROM ${MESSAGES_TABLE} WHERE processed = 0`;
+            const rows = await db.all(filterSql);
+
+            for (const row of rows) {
+                await processLocalMsg(row);
             }
         } catch (e) {
             logger.error(`Error: ${e}`);
@@ -202,9 +222,14 @@ async function monitorBridge() {
         driver: sqlite3.Database,
     });
 
-    const createTableSql = `CREATE TABLE IF NOT EXISTS ${RESULTS_TABLE} 
+    const createTableSql = `CREATE TABLE IF NOT EXISTS ${MESSAGES_TABLE} 
                             (msgId INTEGER NOT NULL
+                            ,processed INTEGER NOT NULL DEFAULT 0
+                            ,result INTEGER NOT NULL DEFAULT 0
                             ,details TEXT NOT NULL
+                            ,receiver TEXT NOT NULL
+                            ,amount INTEGER NOT NULL DEFAULT 0
+                            ,relayerFee INTEGER NOT NULL DEFAULT 0
                             ,UNIQUE(msgId));`;
 
     await db.exec(createTableSql);
