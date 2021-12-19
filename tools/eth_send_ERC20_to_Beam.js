@@ -6,7 +6,7 @@ import * as eth_utils from "./../utils/eth_utils.js";
 import Web3 from "web3";
 import PipeContract from "./../utils/EthPipeContractABI.js";
 import ERC20Abi from "human-standard-token-abi";
-import {program } from "commander";
+import program from "commander";
 
 let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
 const tokenContract = new web3.eth.Contract(
@@ -19,7 +19,7 @@ const pipeContract = new web3.eth.Contract(
 );
 
 program.option('-a, --amount <number>', 'amount of tokens to send', 200);
-program.option('-f, --fee <number>', 'relayer fee', 10);
+program.option('-f, --fee <number>', 'relayer fee', 10.123456);
 
 program.parse(process.argv);
 
@@ -51,12 +51,13 @@ let lockToken = async (amount, pubkey, relayerFee) => {
 
 (async () => {
     console.log("Calling 'sendFunds' of Pipe contract:");
-    const multiplier = BigInt(Math.pow(10, process.env.ETH_SIDE_DECIMALS));
-    const amount = BigInt(options.amount) * multiplier;
-    const relayerFee = BigInt(options.fee) * multiplier;
+    const decimals = 6;
+    const multiplier = BigInt(Math.pow(10, process.env.ETH_SIDE_DECIMALS - decimals));
+    const amount = BigInt(Math.trunc(options.amount * Math.pow(10, decimals))) * multiplier;
+    const relayerFee = BigInt(Math.trunc(options.fee * Math.pow(10, decimals))) * multiplier;
 
     // lock 'tokens' on Ethereum chain
-    const receipt = await lockToken(amount, process.env.BEAM_PIPE_USER_PUBLIC_KEY, relayerFee);
+    await lockToken(amount, process.env.BEAM_PIPE_USER_PUBLIC_KEY, relayerFee);
 
     console.log("'sendFunds' is finished.")
 })();
