@@ -96,7 +96,7 @@ async function isValidRelayerFee(relayerFee) {
     const estimatedRelayerFee = await calcCurrentRelayerFee(
         process.env.COINGECKO_CURRENCY_RATE_ID
     );
-    return relayerFee >= estimatedRelayerFee;
+    return BigInt(relayerFee) >= BigInt(Math.trunc(process.env.ETH_SIDE_DECIMALS * estimatedRelayerFee));
 }
 
 async function addMessage(id, localMsg) {
@@ -124,6 +124,23 @@ async function onProcessedLocalMsg(id, result, details) {
     }
 }
 
+function preprocessAmount(value) {
+    let strValue = value.toString();
+
+    if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
+        const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
+        return strValue.padEnd(strValue.length + diff, "0");
+    } else if (process.env.ETH_SIDE_DECIMALS < beam.BEAM_MAX_DECIMALS) {
+        const diff = beam.BEAM_MAX_DECIMALS - process.env.ETH_SIDE_DECIMALS;
+        // check that amount contains this count of zeros at the end
+        let endedStr = "0".repeat(diff);
+        if (strValue.endsWith(endedStr)) {
+            // remove zeros
+            return strValue.slice(0, -diff);
+        }
+    }
+}
+
 async function processLocalMsg(localMsg) {
     let details;
     let result;
@@ -132,26 +149,21 @@ async function processLocalMsg(localMsg) {
         details = 'success';
         result = ResultStatus.Success;
         try {
-            let amount = localMsg["amount"].toString();
-            let relayerFee = localMsg["relayerFee"].toString();
+            let amount = preprocessAmount(localMsg["amount"]);
+            let relayerFee = preprocessAmount(localMsg["relayerFee"]);
 
-            if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
-                const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
-                amount = amount.padEnd(amount.length + diff, "0");
-                relayerFee = relayerFee.padEnd(relayerFee.length + diff, "0");
-            } else if (process.env.ETH_SIDE_DECIMALS < beam.BEAM_MAX_DECIMALS) {
-                const diff = beam.BEAM_MAX_DECIMALS - process.env.ETH_SIDE_DECIMALS;
-                // check that amount contains this count of zeros at the end
-                let endedStr = "0".repeat(diff);
-                if (!amount.endsWith(endedStr) || !relayerFee.endsWith(endedStr)) {
-                    details = `Unexpected amounts. Message ID - ${localMsg["msgId"]}. Amount = ${amount}`;
-                    result = ResultStatus.UnexpectedAmount;
-                    logger.error(details);
-                    break;
-                }
-                // remove zeros
-                amount = amount.slice(0, -diff);
-                relayerFee = relayerFee.slice(0, -diff);
+            if (amount === undefined) {
+                details = `Unexpected amounts. Message ID - ${localMsg["msgId"]}. Amount = ${localMsg["amount"]}`;
+                result = ResultStatus.UnexpectedAmount;
+                logger.error(details);
+                break;
+            }
+
+            if (relayerFee === undefined) {
+                details = `Unexpected relayerFee. Message ID - ${localMsg["msgId"]}. relayerFee = ${localMsg["relayerFee"]}`;
+                result = ResultStatus.UnexpectedAmount;
+                logger.error(details);
+                break;
             }
 
             if (await isValidRelayerFee(relayerFee)) {
