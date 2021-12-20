@@ -79,6 +79,23 @@ async function onGotNewBlock(blockHeader) {
     }
 }
 
+function preprocessAmount(value) {
+    if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
+        const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
+        // check that amount contains this count of zeros at the end
+        const endedStr = "0".repeat(diff);
+        if (value.endsWith(endedStr)) {
+            // remove zeros
+            return value.slice(0, -diff);
+        }
+    } else if (process.env.ETH_SIDE_DECIMALS < beam.BEAM_MAX_DECIMALS) {
+        const diff = beam.BEAM_MAX_DECIMALS - process.env.ETH_SIDE_DECIMALS;
+        return value.padEnd(value.length + diff, "0");
+    } else { // process.env.ETH_SIDE_DECIMALS === beam.BEAM_MAX_DECIMALS
+        return value;
+    }
+}
+
 async function processEvent(event) {
     logger.info(
         "Processing of a new message has started. Message ID - ",
@@ -87,23 +104,15 @@ async function processEvent(event) {
 
     eventsInProgress.add(event["returnValues"]["msgId"]);
     try {
-        let amount = event["returnValues"]["amount"];
-        let relayerFee = event["returnValues"]["relayerFee"];
+        let amount = preprocessAmount(event["returnValues"]["amount"]);
+        let relayerFee = preprocessAmount(event["returnValues"]["relayerFee"]);
 
-        if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
-            const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
-            // check that amount contains this count of zeros at the end
-            const endedStr = "0".repeat(diff);
-            if (!amount.endsWith(endedStr) || !relayerFee.endsWith(endedStr)) {
-                throw new Error(`Unexpected amounts.`);
-            }
-            // remove zeros
-            amount = amount.slice(0, -diff);
-            relayerFee = relayerFee.slice(0, -diff);
-        } else if (process.env.ETH_SIDE_DECIMALS < beam.BEAM_MAX_DECIMALS) {
-            const diff = beam.BEAM_MAX_DECIMALS - process.env.ETH_SIDE_DECIMALS;
-            amount = amount.padEnd(amount.length + diff, "0");
-            relayerFee = relayerFee.padEnd(relayerFee.length + diff, "0");
+        if (amount === undefined) {
+            throw new Error(`Unexpected amount. Amount = ${amount}`);
+        }
+
+        if (relayerFee === undefined) {
+            throw new Error(`Unexpected relayer fee. relayerFee = ${relayerFee}`);
         }
 
         const result = await beam.bridgePushRemote(

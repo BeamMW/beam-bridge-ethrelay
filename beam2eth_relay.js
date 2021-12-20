@@ -138,6 +138,8 @@ function preprocessAmount(value) {
             // remove zeros
             return strValue.slice(0, -diff);
         }
+    } else { // process.env.ETH_SIDE_DECIMALS === beam.BEAM_MAX_DECIMALS
+        return strValue;
     }
 }
 
