@@ -96,7 +96,7 @@ async function isValidRelayerFee(relayerFee) {
     const estimatedRelayerFee = await calcCurrentRelayerFee(
         process.env.COINGECKO_CURRENCY_RATE_ID
     );
-    return BigInt(relayerFee) >= BigInt(Math.trunc(process.env.ETH_SIDE_DECIMALS * estimatedRelayerFee));
+    return BigInt(relayerFee) >= BigInt(Math.trunc(Math.pow(10, process.env.ETH_SIDE_DECIMALS) * estimatedRelayerFee));
 }
 
 async function addMessage(id, localMsg) {
