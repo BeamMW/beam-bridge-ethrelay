@@ -13,6 +13,35 @@ import PipeContract from "./utils/EthPipeContractABI.js";
 const EVENTS_TABLE = "events";
 let db = undefined;
 let eventsInProgress = new Set();
+const ResultStatus = {
+    None: 0,
+    Success: 1,
+    UnexpectedAmount: 2,
+    Exist: 3,
+    InvalidTx: 4,
+    Other: 5
+};
+
+class UnexpectedAmountError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "UnexpectedAmountError";
+    }
+}
+
+class ExistMessageError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "ExistMessageError";
+    }
+}
+
+class InvalidTxStatusError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "InvalidTxStatusError";
+    }
+}
 
 async function addEvent(event) {
     // ignore if event is exist in db
@@ -39,8 +68,8 @@ async function removeEvent(event) {
     }
 }
 
-async function onProcessedEvent(event) {
-    const updateSql = `UPDATE ${EVENTS_TABLE} SET processed=1 WHERE block=${event["blockNumber"]} AND txHash='${event["transactionHash"]}'`;
+async function onProcessedEvent(event, processed, resultStatus, details, attempt) {
+    const updateSql = `UPDATE ${EVENTS_TABLE} SET processed=${processed}, result=${resultStatus}, details='${details}', attempt=${attempt} WHERE block=${event["blockNumber"]} AND txHash='${event["transactionHash"]}'`;
     try {
         return db.run(updateSql);
     } catch (err) {
@@ -52,7 +81,7 @@ async function onProcessedEvent(event) {
 async function onGotNewBlock(blockHeader) {
     const minBlockNumber =
         blockHeader["number"] - process.env.ETH_MIN_CONFRIMATIONS;
-    const filterSql = `SELECT body FROM ${EVENTS_TABLE} WHERE processed = 0 AND block <= ${minBlockNumber}`;
+    const filterSql = `SELECT body,attempt FROM ${EVENTS_TABLE} WHERE processed = 0 AND block <= ${minBlockNumber}`;
     const rows = await db.all(filterSql);
 
     // TODO
@@ -75,7 +104,7 @@ async function onGotNewBlock(blockHeader) {
         if (eventsInProgress.has(event["returnValues"]["msgId"])) {
             continue;
         }
-        await processEvent(event);
+        await processEvent(event, item["attempt"]);
     }
 }
 
@@ -96,7 +125,7 @@ function preprocessAmount(value) {
     }
 }
 
-async function processEvent(event) {
+async function processEvent(event, attempt) {
     logger.info(
         "Processing of a new message has started. Message ID - ",
         event["returnValues"]["msgId"]
@@ -104,15 +133,16 @@ async function processEvent(event) {
 
     eventsInProgress.add(event["returnValues"]["msgId"]);
     try {
+        attempt++;
         let amount = preprocessAmount(event["returnValues"]["amount"]);
         let relayerFee = preprocessAmount(event["returnValues"]["relayerFee"]);
 
         if (amount === undefined) {
-            throw new Error(`Unexpected amount. Amount = ${amount}`);
+            throw new UnexpectedAmountError(`Unexpected amount. Amount = ${amount}`);
         }
 
         if (relayerFee === undefined) {
-            throw new Error(`Unexpected relayer fee. relayerFee = ${relayerFee}`);
+            throw new UnexpectedAmountError(`Unexpected relayer fee. relayerFee = ${relayerFee}`);
         }
 
         const result = await beam.bridgePushRemote(
@@ -127,15 +157,12 @@ async function processEvent(event) {
         }
 
         if (result.isExist) {
-            logger.info(
-                "The message is exist in the Beam. Message ID - ",
-                event["returnValues"]["msgId"]
-            );
+            throw new ExistMessageError("The message is exist in the Beam.");
         } else {
             const txStatus = await beam.waitTx(result.txid);
 
             if (beam.TX_STATUS_FAILED == txStatus) {
-                throw new Error("Invalid TX status.");
+                throw new InvalidTxStatusError("Invalid TX status.");
             }
 
             logger.info(
@@ -145,11 +172,26 @@ async function processEvent(event) {
         }
 
         // Update event state
-        await onProcessedEvent(event);
+        await onProcessedEvent(event, 1, ResultStatus.Success, "", attempt);
     } catch (err) {
         logger.error(
-            `Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}. ${err}`
+            `Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}. ${err.message}`
         );
+
+        let resultStatus = ResultStatus.Other;
+        let processed = attempt >= 3;
+        
+        if (err instanceof UnexpectedAmountError) {
+            resultStatus = ResultStatus.UnexpectedAmount;
+            processed = 1;
+        } else if (err instanceof ExistMessageError) {
+            resultStatus = ResultStatus.Exist;
+            processed = 1;
+        } else if (err instanceof InvalidTxStatusError) {
+            resultStatus = ResultStatus.InvalidTx;
+        }
+
+        await onProcessedEvent(event, processed, resultStatus, err.message, attempt);
     } finally {
         eventsInProgress.delete(event["returnValues"]["msgId"]);
     }
@@ -182,8 +224,11 @@ async function getStartBlockFromDB() {
                             (block INTEGER NOT NULL
                             ,txHash TEXT NOT NULL
                             ,processed INTEGER NOT NULL DEFAULT 0
-                            ,body TEXT NOT NULL,
-                            UNIQUE(block,txHash));`;
+                            ,body TEXT NOT NULL
+                            ,result INTEGER NOT NULL DEFAULT 0
+                            ,details TEXT NOT NULL DEFAULT ''
+                            ,attempt INTEGER NOT NULL DEFAULT 0
+                            ,UNIQUE(block,txHash));`;
 
     await db.exec(createTableSql);
 
