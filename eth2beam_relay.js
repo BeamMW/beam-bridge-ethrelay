@@ -132,17 +132,22 @@ async function processEvent(event, attempt) {
     );
 
     eventsInProgress.add(event["returnValues"]["msgId"]);
+    let processed = 0;
+    let resultStatus = ResultStatus.None;
+    let errMessage = '';
     try {
         attempt++;
         let amount = preprocessAmount(event["returnValues"]["amount"]);
         let relayerFee = preprocessAmount(event["returnValues"]["relayerFee"]);
 
         if (amount === undefined) {
-            throw new UnexpectedAmountError(`Unexpected amount. Amount = ${amount}`);
+            throw new UnexpectedAmountError(`Unexpected amount. Amount = ${event["returnValues"]["amount"]}`);
         }
 
         if (relayerFee === undefined) {
-            throw new UnexpectedAmountError(`Unexpected relayer fee. relayerFee = ${relayerFee}`);
+            throw new UnexpectedAmountError(
+                `Unexpected relayer fee. relayerFee = ${event["returnValues"]["relayerFee"]}`
+            );
         }
 
         const result = await beam.bridgePushRemote(
@@ -171,16 +176,15 @@ async function processEvent(event, attempt) {
             );
         }
 
-        // Update event state
-        await onProcessedEvent(event, 1, ResultStatus.Success, "", attempt);
+        processed = 1;
+        resultStatus = ResultStatus.Success;
     } catch (err) {
         logger.error(
             `Failed to transfer message to the Beam. Message ID - ${event["returnValues"]["msgId"]}. ${err.message}`
         );
 
-        let resultStatus = ResultStatus.Other;
-        let processed = attempt >= 3;
-        
+        processed = attempt >= 3;
+
         if (err instanceof UnexpectedAmountError) {
             resultStatus = ResultStatus.UnexpectedAmount;
             processed = 1;
@@ -189,12 +193,17 @@ async function processEvent(event, attempt) {
             processed = 1;
         } else if (err instanceof InvalidTxStatusError) {
             resultStatus = ResultStatus.InvalidTx;
+        } else {
+            resultStatus = ResultStatus.Other;
         }
 
-        await onProcessedEvent(event, processed, resultStatus, err.message, attempt);
+        errMessage = err.message;
     } finally {
         eventsInProgress.delete(event["returnValues"]["msgId"]);
     }
+
+    // Update event state
+    await onProcessedEvent(event, processed, resultStatus, errMessage, attempt);
 }
 
 async function getStartBlockFromDB() {

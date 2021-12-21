@@ -11,9 +11,6 @@ import logger from "./logger.js"
 import sqlite3 from "sqlite3";
 import * as sqlite from "sqlite";
 
-/*
-it is not necessary to use let if you will not reassign variable
- */
 const MESSAGES_TABLE = "messages";
 const ResultStatus = {
     None: 0,
@@ -24,6 +21,20 @@ const ResultStatus = {
 };
 let db = undefined;
 let msgId = 1;
+
+class UnexpectedAmountError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "UnexpectedAmountError";
+    }
+}
+
+class SmallFeeError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "SmallFeeError";
+    }
+}
 
 function saveSettings(value) {
     try {
@@ -144,52 +155,44 @@ function preprocessAmount(value) {
 }
 
 async function processLocalMsg(localMsg) {
-    let details;
-    let result;
+    let details = 'success';
+    let result = ResultStatus.Success;
+    try {
+        let amount = preprocessAmount(localMsg["amount"]);
+        let relayerFee = preprocessAmount(localMsg["relayerFee"]);
 
-    for (let i = 1; i < 2; i++) {
-        details = 'success';
-        result = ResultStatus.Success;
-        try {
-            let amount = preprocessAmount(localMsg["amount"]);
-            let relayerFee = preprocessAmount(localMsg["relayerFee"]);
+        if (amount === undefined) {
+            throw new UnexpectedAmountError(`Unexpected amounts. Amount = ${localMsg["amount"]}`);
+        }
 
-            if (amount === undefined) {
-                details = `Unexpected amounts. Message ID - ${localMsg["msgId"]}. Amount = ${localMsg["amount"]}`;
-                result = ResultStatus.UnexpectedAmount;
-                logger.error(details);
-                break;
-            }
+        if (relayerFee === undefined) {
+            throw new UnexpectedAmountError(`Unexpected relayerFee. relayerFee = ${localMsg["relayerFee"]}`);
+        }
 
-            if (relayerFee === undefined) {
-                details = `Unexpected relayerFee. Message ID - ${localMsg["msgId"]}. relayerFee = ${localMsg["relayerFee"]}`;
-                result = ResultStatus.UnexpectedAmount;
-                logger.error(details);
-                break;
-            }
+        if (!await isValidRelayerFee(relayerFee)) {
+            throw new SmallFeeError(`Relayer fee is small! realyerFee = ${relayerFee}`);
+        }
 
-            if (await isValidRelayerFee(relayerFee)) {
-                logger.info(`Processing of a new message has started. Message ID - ${localMsg["msgId"]}`);
+        logger.info(`Processing of a new message has started. Message ID - ${localMsg["msgId"]}`);
 
-                await eth.processRemoteMessage(
-                    msgId,
-                    amount,
-                    localMsg["receiver"],
-                    relayerFee
-                );
+        await eth.processRemoteMessage(
+            msgId,
+            amount,
+            localMsg["receiver"],
+            relayerFee
+        );
 
-                logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${localMsg["msgId"]}`);
-            } else {
-                details = `Relayer fee is small! Message ID - ${localMsg["msgId"]}, realyerFee = ${relayerFee}`;
-                result = ResultStatus.SmallFee;
-                logger.error(details);
-            }
+        logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${localMsg["msgId"]}`);
+    } catch (err) {
+        details = `Failed to push remote message #${localMsg["msgId"]}. Attempt #${i}. Details: ${err.message}`;
+        logger.error(details);
 
-            break;
-        } catch (err) {
-            details = `Failed to push remote message #${localMsg["msgId"]}. Attempt #${i}. Details: ${err}`;
+        if (err instanceof UnexpectedAmountError) {
+            result = ResultStatus.UnexpectedAmount;
+        } else if (err instanceof SmallFeeError) {
+            result = ResultStatus.SmallFee;
+        } else {
             result = ResultStatus.Other;
-            logger.error(details);
         }
     }
 
