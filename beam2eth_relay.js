@@ -6,7 +6,6 @@ import * as beam from "./utils/beam_utils.js";
 import * as eth from "./utils/eth_utils.js";
 import { program } from "commander";
 import https from "https";
-import fs from "fs";
 import logger from "./logger.js"
 import sqlite3 from "sqlite3";
 import * as sqlite from "sqlite";
@@ -34,17 +33,6 @@ class SmallFeeError extends Error {
         super(message);
         this.name = "SmallFeeError";
     }
-}
-
-function saveSettings(value) {
-    try {
-        fs.writeFileSync(
-            process.env.BEAM2ETH_SETTINGS_FILE,
-            JSON.stringify({
-                startMsgId: value,
-            })
-        );
-    } catch (e) { }
 }
 
 async function requestHeight() {
@@ -121,6 +109,17 @@ async function addMessage(id, localMsg) {
         ]);
     } catch (err) {
         logger.error(`Failed to save result - ${err.message}`);
+        throw err;
+    }
+}
+
+async function getMaxMsgIdFromDB() {
+    const maxMsgIdSql = `SELECT MAX(msgId) from ${MESSAGES_TABLE}`;
+    try {
+        let row = await db.get(maxMsgIdSql);
+        return row['MAX(msgId)'];
+    } catch (err) {
+        logger.error(`Failed to get last known msgId from DB - ${err.message}`);
         throw err;
     }
 }
@@ -217,7 +216,6 @@ async function monitorBridge() {
                 }
 
                 await addMessage(msgId, localMsg);
-                saveSettings(++msgId);
             }
 
             // select unprocessed messages
@@ -262,12 +260,11 @@ async function monitorBridge() {
 
     if (options.msgId !== undefined) {
         msgId = options.msgId;
-        saveSettings(msgId);
     } else {
         try {
-            const data = fs.readFileSync(process.env.BEAM2ETH_SETTINGS_FILE);
-            const obj = JSON.parse(data);
-            msgId = obj["startMsgId"];
+            msgId = await getMaxMsgIdFromDB();
+            // if msgId is uninitialized then start from 1, else switch to the next one
+            msgId = msgId ? msgId + 1 : 1;
         } catch (e) { }
     }
 
