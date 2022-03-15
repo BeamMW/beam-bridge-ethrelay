@@ -183,7 +183,7 @@ async function processLocalMsg(localMsg) {
 
         logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${localMsg["msgId"]}`);
     } catch (err) {
-        details = `Failed to push remote message #${localMsg["msgId"]}. Attempt #${i}. Details: ${err.message}`;
+        details = `Failed to push remote message #${localMsg["msgId"]}. Details: ${err.message}`;
         logger.error(details);
 
         if (err instanceof UnexpectedAmountError) {
@@ -216,6 +216,7 @@ async function monitorBridge() {
                 }
 
                 await addMessage(msgId, localMsg);
+                ++msgId;
             }
 
             // select unprocessed messages
