@@ -2,10 +2,26 @@ version: '3.5'
 
 networks:
   default:
-    external: true
-    name: ${BEAM_NETWORK}
+    external: ${USE_EXTERNAL_NETWORK}
+    name: ${NETWORK_NAME}
 
 services:
+  api:
+    profiles: ["api"]
+    build:
+      context: ./wallet-api/
+    restart: always
+    volumes:
+      - ${DATA_PATH}/api/:/home/beam/data/
+    ports:
+      - ${BEAM_WALLET_API_PORT}:${BEAM_WALLET_API_PORT}
+    environment:
+      - NODE_ADR=$BEAM_WALLET_API_PEER
+      - SEED_PHRASE=${BEAM_WALLET_API_SEED_PHRASE}
+      - WALLET_PASS=$BEAM_WALLET_API_PASS
+      - BEAM_CUSTOM_NETWORK_ARGS=$BEAM_CUSTOM_NETWORK_ARGS
+      - BEAM_WALLET_API_PORT=$BEAM_WALLET_API_PORT
+
   beam2eth_relay:
     build:
       context: ./
