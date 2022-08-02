@@ -9,6 +9,7 @@ import https from "https";
 import logger from "./logger.js"
 import sqlite3 from "sqlite3";
 import * as sqlite from "sqlite";
+import {UnexpectedAmountError, SmallFeeError} from "./utils/exceptions.js"
 
 const MESSAGES_TABLE = "messages";
 const ResultStatus = {
@@ -20,20 +21,6 @@ const ResultStatus = {
 };
 let db = undefined;
 let msgId = 1;
-
-class UnexpectedAmountError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "UnexpectedAmountError";
-    }
-}
-
-class SmallFeeError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "SmallFeeError";
-    }
-}
 
 async function requestHeight() {
     try {

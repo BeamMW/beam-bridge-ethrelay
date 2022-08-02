@@ -9,6 +9,7 @@ import sqlite3 from "sqlite3";
 import * as sqlite from "sqlite";
 import logger from "./logger.js"
 import PipeContract from "./utils/EthPipeContractABI.js";
+import {UnexpectedAmountError, ExistMessageError, InvalidTxStatusError} from "./utils/exceptions.js"
 
 const EVENTS_TABLE = "events";
 let db = undefined;
@@ -21,27 +22,6 @@ const ResultStatus = {
     InvalidTx: 4,
     Other: 5
 };
-
-class UnexpectedAmountError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "UnexpectedAmountError";
-    }
-}
-
-class ExistMessageError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "ExistMessageError";
-    }
-}
-
-class InvalidTxStatusError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = "InvalidTxStatusError";
-    }
-}
 
 async function addEvent(event) {
     // ignore if event is exist in db
