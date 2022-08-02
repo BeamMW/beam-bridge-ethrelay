@@ -1,5 +1,6 @@
 node_modules
-.env
+*.env
 logs
 eth2beam.db
+beam2eth.db
 beam2eth_settings.json
