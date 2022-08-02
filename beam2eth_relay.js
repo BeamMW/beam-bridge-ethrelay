@@ -5,11 +5,11 @@ dotenv.config();
 import * as beam from "./utils/beam_utils.js";
 import * as eth from "./utils/eth_utils.js";
 import { program } from "commander";
-import https from "https";
 import logger from "./logger.js"
 import sqlite3 from "sqlite3";
 import * as sqlite from "sqlite";
 import {UnexpectedAmountError, SmallFeeError} from "./utils/exceptions.js"
+import {calcCurrentRelayerFee} from "./utils/eth_fee.js"
 
 const MESSAGES_TABLE = "messages";
 const ResultStatus = {
@@ -30,52 +30,6 @@ async function requestHeight() {
         logger.error(`There is Beam wallet status problem. ${e}`);
     }
     return 0;
-}
-
-function baseGetRequest(url, processResult) {
-    return new Promise((resolve, reject) => {
-        let accumulated = "";
-
-        const callback = (response) => {
-            // same as above
-            response.on("data", (chunk) => {
-                accumulated += chunk;
-            });
-
-            response.on("end", () => {
-                resolve(processResult(accumulated));
-            });
-
-            response.on("error", reject);
-        };
-
-        https.get(url, callback).on("error", reject);
-    });
-}
-
-async function getCurrencyRate(rateId) {
-    const url = `${process.env.COINGECKO_CURRENCY_RATE_API_URL}?ids=${rateId}&vs_currencies=usd`;
-    return baseGetRequest(url, JSON.parse);
-}
-
-async function getGasPrice() {
-    return baseGetRequest(process.env.GAS_PRICE_API_URL, JSON.parse);
-}
-
-async function calcCurrentRelayerFee(rateId) {
-    const RELAY_COSTS_IN_GAS = 120000;
-    const ETH_RATE_ID = "ethereum";
-
-    const gasPrice = await getGasPrice();
-    const ethRate = await getCurrencyRate(ETH_RATE_ID);
-    const relayCosts =
-        (RELAY_COSTS_IN_GAS *
-            parseFloat(gasPrice["FastGasPrice"]) *
-            parseFloat(ethRate[ETH_RATE_ID]["usd"])) /
-        Math.pow(10, 9);
-    const currRate = await getCurrencyRate(rateId);
-
-    return relayCosts / parseFloat(currRate[rateId]["usd"]);
 }
 
 async function isValidRelayerFee(relayerFee) {
