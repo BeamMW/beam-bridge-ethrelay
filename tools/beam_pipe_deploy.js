@@ -58,9 +58,9 @@ async function deployToken(tokenName) {
     const params = commonParams.concat([
         `shader`,
         `--shader_app_file=${process.env.TOKEN_APP_PATH}`,
-        `--shader_args=action=create,metadata=STD:SCH_VER=1;N=${tokenName} Coin;SN=${tokenName};UN=${tokenName};NTHUN=AGROTH`,
+        `--shader_args=action=create,metadata=STD:SCH_VER=1;N=${tokenName};SN=${tokenName};UN=${tokenName};NTHUN=AGROTH`,
         `--shader_contract_file=${process.env.TOKEN_CONTRACT_PATH}`
-    ]);
+    ]); 
 
     return execute(process.env.WALLET_CLI_PATH, params, process.env.WALLET_CLI_WORK_DIR);
 }
