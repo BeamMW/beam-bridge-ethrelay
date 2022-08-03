@@ -32,13 +32,6 @@ async function requestHeight() {
     return 0;
 }
 
-async function isValidRelayerFee(relayerFee) {
-    const estimatedRelayerFee = await calcCurrentRelayerFee(
-        process.env.COINGECKO_CURRENCY_RATE_ID
-    );
-    return BigInt(relayerFee) >= BigInt(Math.trunc(Math.pow(10, process.env.ETH_SIDE_DECIMALS) * estimatedRelayerFee));
-}
-
 async function addMessage(id, localMsg) {
     const insertSql = `INSERT OR IGNORE INTO ${MESSAGES_TABLE} (msgId, receiver, amount, relayerFee) VALUES(?,?,?,?);`;
     try {
@@ -98,6 +91,7 @@ async function processLocalMsg(localMsg) {
     let details = 'success';
     let result = ResultStatus.Success;
     try {
+        logger.info(`Processing of a new message has started. Message ID - ${localMsg["msgId"]}`);
         let amount = preprocessAmount(localMsg["amount"]);
         let relayerFee = preprocessAmount(localMsg["relayerFee"]);
 
@@ -108,12 +102,22 @@ async function processLocalMsg(localMsg) {
         if (relayerFee === undefined) {
             throw new UnexpectedAmountError(`Unexpected relayerFee. relayerFee = ${localMsg["relayerFee"]}`);
         }
-
-        if (!await isValidRelayerFee(relayerFee)) {
-            throw new SmallFeeError(`Relayer fee is small! realyerFee = ${relayerFee}`);
+        {
+            const estimatedRelayerFee = await calcCurrentRelayerFee(
+                process.env.COINGECKO_CURRENCY_RATE_ID
+            );
+            const expectedMinimumFee = Math.trunc(
+                Math.pow(10, process.env.ETH_SIDE_DECIMALS) * estimatedRelayerFee
+            );
+            const isFeeOk = BigInt(relayerFee) >= BigInt(expectedMinimumFee);
+            if (!isFeeOk) {
+                throw new SmallFeeError(`Relayer fee is small! realyerFee = ${relayerFee}, 
+                expected minimum fee - ${expectedMinimumFee}`);
+            }
         }
-
-        logger.info(`Processing of a new message has started. Message ID - ${localMsg["msgId"]}`);
+        
+        logger.info(`Basic message checks are completed successfully. Message ID - ${localMsg["msgId"]}`);
+        logger.info(`Starting the message transmission to the Ethereum. Message ID - ${localMsg["msgId"]}`);
 
         await eth.processRemoteMessage(
             msgId,
