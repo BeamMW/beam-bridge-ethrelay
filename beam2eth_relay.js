@@ -21,6 +21,7 @@ const ResultStatus = {
 };
 let db = undefined;
 let msgId = 1;
+let lowFeeMessagesRefreshCounter = 0;
 
 async function requestHeight() {
     try {
@@ -87,6 +88,17 @@ function preprocessAmount(value) {
     }
 }
 
+async function getCurrentMinRelayerFee() {
+    const estimatedRelayerFee = await calcCurrentRelayerFee(
+        process.env.COINGECKO_CURRENCY_RATE_ID
+    );
+    const expectedMinimumFee = Math.trunc(
+        Math.pow(10, process.env.ETH_SIDE_DECIMALS) * estimatedRelayerFee
+    );
+
+    return expectedMinimumFee;
+}
+
 async function processLocalMsg(localMsg) {
     let details = 'success';
     let result = ResultStatus.Success;
@@ -103,12 +115,7 @@ async function processLocalMsg(localMsg) {
             throw new UnexpectedAmountError(`Unexpected relayerFee. relayerFee = ${localMsg["relayerFee"]}`);
         }
         {
-            const estimatedRelayerFee = await calcCurrentRelayerFee(
-                process.env.COINGECKO_CURRENCY_RATE_ID
-            );
-            const expectedMinimumFee = Math.trunc(
-                Math.pow(10, process.env.ETH_SIDE_DECIMALS) * estimatedRelayerFee
-            );
+            const expectedMinimumFee = await getCurrentMinRelayerFee();
             const isFeeOk = BigInt(relayerFee) >= BigInt(expectedMinimumFee);
             if (!isFeeOk) {
                 throw new SmallFeeError(`Relayer fee is small! realyerFee = ${relayerFee}, 
@@ -148,6 +155,8 @@ async function monitorBridge() {
 
     if (currentHeight > 0 && currentHeight > process.env.BEAM_MIN_CONFIRMATIONS) {
         try {
+            await checkStuckMessages();
+
             const count = await beam.getLocalMsgCount();
 
             while (msgId <= count) {
@@ -177,6 +186,26 @@ async function monitorBridge() {
     }
 
     setTimeout(monitorBridge, process.env.BEAM_BLOCK_CREATION_PERIOD);
+}
+
+async function checkStuckMessages() {
+    if (lowFeeMessagesRefreshCounter < process.env.LOW_FEE_MESSAGES_REFRESH_INTERVAL) {
+        lowFeeMessagesRefreshCounter++;
+        return;
+    }
+    lowFeeMessagesRefreshCounter = 0;
+    try {
+        // retry to process stuck messages with low fee:
+        // 1) get current estimated fee
+        const expectedMinimumFee = await getCurrentMinRelayerFee();
+        // 2) filter stuck messages with low fee error and reset them 'processed' to 0
+        const updateSql = `UPDATE ${MESSAGES_TABLE} SET processed=0 WHERE processed=1 
+                            AND result=${ResultStatus.SmallFee} 
+                            AND relayerFee>=${expectedMinimumFee};`;
+        return db.run(updateSql);
+    } catch (err) {
+        logger.error("Failed to reset stuck messages with low fee - " + err.message);
+    }
 }
 
 (async () => {
