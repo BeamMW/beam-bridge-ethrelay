@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "preinstall": "npx npm-force-resolutions",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha ./test/fee.test.js"
   },
   "repository": {
     "type": "git",
@@ -31,5 +31,8 @@
   },
   "resolutions": {
     "eth-object": "BeamMW/eth-object#0e5f245d4feaf037fed477f1797766a91d70b030"
+  },
+  "devDependencies": {
+    "mocha": "^10.0.0"
   }
 }
