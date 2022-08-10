@@ -68,53 +68,53 @@ describe("", () => {
         etherscan.close();
     });
 
-    // it("empty response of coingecko", async() => {
-    //     const coingecko = http.createServer((req, res) => {
-    //         res.writeHead(404);
-    //         res.end("");
-    //     });
+    it("empty response of coingecko", async() => {
+        const coingecko = http.createServer((req, res) => {
+            res.writeHead(404);
+            res.end("");
+        });
 
-    //     coingecko.listen(9998);
+        coingecko.listen(9998);
 
-    //     const etherscan = http.createServer((req, res) => {
-    //         res.writeHead(200);
-    //         res.end(`{
-    //             "FastGasPrice": 37
-    //           }`);
-    //     });
+        const etherscan = http.createServer((req, res) => {
+            res.writeHead(200);
+            res.end(`{
+                "FastGasPrice": 37
+              }`);
+        });
 
-    //     etherscan.listen(9999);
+        etherscan.listen(9999);
 
-    //     const fee = await calcCurrentRelayerFee("tether", false);
+        await assert.rejects(calcCurrentRelayerFee("tether", false), SyntaxError);
 
-    //     coingecko.close();
-    //     etherscan.close();
-    // });
+        coingecko.close();
+        etherscan.close();
+    });
 
-    // it("empty response of etherscan", async() => {
-    //     const coingecko = http.createServer((req, res) => {
-    //         res.writeHead(200);
-    //         if (req.url.includes('ethereum')) {
-    //             res.end(`{ "ethereum": { "usd": 1715.93 } }`);
-    //         } else {
-    //             res.end(`{ "tether": { "usd": 1.002 } }`);
-    //         }
-    //     });
+    it("empty response of etherscan", async() => {
+        const coingecko = http.createServer((req, res) => {
+            res.writeHead(200);
+            if (req.url.includes('ethereum')) {
+                res.end(`{ "ethereum": { "usd": 1715.93 } }`);
+            } else {
+                res.end(`{ "tether": { "usd": 1.002 } }`);
+            }
+        });
 
-    //     coingecko.listen(9998);
+        coingecko.listen(9998);
 
-    //     const etherscan = http.createServer((req, res) => {
-    //         res.writeHead(404);
-    //         res.end("");
-    //     });
+        const etherscan = http.createServer((req, res) => {
+            res.writeHead(404);
+            res.end("");
+        });
 
-    //     etherscan.listen(9999);
+        etherscan.listen(9999);
 
-    //     const fee = await calcCurrentRelayerFee("tether", false);
+        await assert.rejects(calcCurrentRelayerFee("tether", false), SyntaxError);
 
-    //     coingecko.close();
-    //     etherscan.close();
-    // });
+        coingecko.close();
+        etherscan.close();
+    });
 
     // it("wrong ethereum rate", async() => {
     //     const coingecko = http.createServer((req, res) => {

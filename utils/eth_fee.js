@@ -16,7 +16,11 @@ function baseGetRequest(url, processResult, useHttps = true) {
             });
 
             response.on("end", () => {
-                resolve(processResult(accumulated));
+                try {
+                    resolve(processResult(accumulated));
+                } catch (err) {
+                    reject(err);
+                }
             });
 
             response.on("error", reject);
