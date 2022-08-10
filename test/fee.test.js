@@ -6,13 +6,21 @@ import {calcCurrentRelayerFee} from "./../utils/eth_fee.js"
 import assert from "assert";
 
 describe("", () => {
+    let coingecko;
+    let etherscan;
+
     before(() => {
         process.env.COINGECKO_CURRENCY_RATE_API_URL = "http://127.0.0.1:9998";
         process.env.GAS_PRICE_API_URL = "http://127.0.0.1:9999";
     });
 
+    afterEach(async () => {
+        coingecko.close();
+        etherscan.close();
+    });
+
     it("normal case", async() => {
-        const coingecko = http.createServer((req, res) => {
+        coingecko = http.createServer((req, res) => {
             res.writeHead(200);
             if (req.url.includes('ethereum')) {
                 res.end(`{ "ethereum": { "usd": 1715.93 } }`);
@@ -23,7 +31,7 @@ describe("", () => {
 
         coingecko.listen(9998);
 
-        const etherscan = http.createServer((req, res) => {
+        etherscan = http.createServer((req, res) => {
             res.writeHead(200);
             res.end(`{
                 "FastGasPrice": 37
@@ -34,13 +42,10 @@ describe("", () => {
 
         const fee = await calcCurrentRelayerFee("tether", false);
         assert.ok(fee > 7 && fee < 8);
-
-        coingecko.close();
-        etherscan.close();
     });
 
     it("divide by zero", async() => {
-        const coingecko = http.createServer((req, res) => {
+        coingecko = http.createServer((req, res) => {
             res.writeHead(200);
             if (req.url.includes('ethereum')) {
                 res.end(`{ "ethereum": { "usd": 1715.93 } }`);
@@ -51,7 +56,7 @@ describe("", () => {
 
         coingecko.listen(9998);
 
-        const etherscan = http.createServer((req, res) => {
+        etherscan = http.createServer((req, res) => {
             res.writeHead(200);
             res.end(`{
                 "FastGasPrice": 37
@@ -60,23 +65,18 @@ describe("", () => {
 
         etherscan.listen(9999);
 
-        const fee = await calcCurrentRelayerFee("tether", false);
-
-        console.log(fee);
-        
-        coingecko.close();
-        etherscan.close();
+        await assert.rejects(calcCurrentRelayerFee("tether", false));
     });
 
     it("empty response of coingecko", async() => {
-        const coingecko = http.createServer((req, res) => {
+        coingecko = http.createServer((req, res) => {
             res.writeHead(404);
             res.end("");
         });
 
         coingecko.listen(9998);
 
-        const etherscan = http.createServer((req, res) => {
+        etherscan = http.createServer((req, res) => {
             res.writeHead(200);
             res.end(`{
                 "FastGasPrice": 37
@@ -86,13 +86,10 @@ describe("", () => {
         etherscan.listen(9999);
 
         await assert.rejects(calcCurrentRelayerFee("tether", false), SyntaxError);
-
-        coingecko.close();
-        etherscan.close();
     });
 
     it("empty response of etherscan", async() => {
-        const coingecko = http.createServer((req, res) => {
+        coingecko = http.createServer((req, res) => {
             res.writeHead(200);
             if (req.url.includes('ethereum')) {
                 res.end(`{ "ethereum": { "usd": 1715.93 } }`);
@@ -103,7 +100,7 @@ describe("", () => {
 
         coingecko.listen(9998);
 
-        const etherscan = http.createServer((req, res) => {
+        etherscan = http.createServer((req, res) => {
             res.writeHead(404);
             res.end("");
         });
@@ -111,118 +108,82 @@ describe("", () => {
         etherscan.listen(9999);
 
         await assert.rejects(calcCurrentRelayerFee("tether", false), SyntaxError);
-
-        coingecko.close();
-        etherscan.close();
     });
 
-    // it("wrong ethereum rate", async() => {
-    //     const coingecko = http.createServer((req, res) => {
-    //         res.writeHead(200);
-    //         if (req.url.includes('ethereum')) {
-    //             res.end(`{ "ethereum": { "usd": "test" } }`);
-    //         } else {
-    //             res.end(`{ "tether": { "usd": 1.002 } }`);
-    //         }
-    //     });
+    it("wrong ethereum rate", async() => {
+        coingecko = http.createServer((req, res) => {
+            res.writeHead(200);
+            if (req.url.includes('ethereum')) {
+                res.end(`{ "ethereum": { "usd": "test" } }`);
+            } else {
+                res.end(`{ "tether": { "usd": 1.002 } }`);
+            }
+        });
 
-    //     coingecko.listen(9998);
+        coingecko.listen(9998);
 
-    //     const etherscan = http.createServer((req, res) => {
-    //         res.writeHead(200);
-    //         res.end(`{
-    //             "FastGasPrice": 37
-    //           }`);
-    //     });
+        etherscan = http.createServer((req, res) => {
+            res.writeHead(200);
+            res.end(`{
+                "FastGasPrice": 37
+              }`);
+        });
 
-    //     etherscan.listen(9999);
+        etherscan.listen(9999);
 
-    //     const fee = await calcCurrentRelayerFee("tether", false);
+        await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
+    });
 
-    //     const expectedMinimumFee = Math.trunc(
-    //         Math.pow(10, process.env.ETH_SIDE_DECIMALS) * fee
-    //     );
+    it("wrong tether rate", async() => {
+        coingecko = http.createServer((req, res) => {
+            res.writeHead(200);
+            if (req.url.includes('ethereum')) {
+                res.end(`{ "ethereum": { "usd": 1715.93 } }`);
+            } else {
+                res.end(`{ "tether": { "usd": "test" } }`);
+            }
+        });
 
-    //     console.log(fee);
-    //     console.log(expectedMinimumFee);
-    //     const t = BigInt(expectedMinimumFee);
-        
-    //     coingecko.close();
-    //     etherscan.close();
-    // });
+        coingecko.listen(9998);
 
-    // it("wrong tether rate", async() => {
-    //     const coingecko = http.createServer((req, res) => {
-    //         res.writeHead(200);
-    //         if (req.url.includes('ethereum')) {
-    //             res.end(`{ "ethereum": { "usd": 1715.93 } }`);
-    //         } else {
-    //             res.end(`{ "tether": { "usd": "test" } }`);
-    //         }
-    //     });
+        etherscan = http.createServer((req, res) => {
+            res.writeHead(200);
+            res.end(`{
+                "FastGasPrice": 37
+              }`);
+        });
 
-    //     coingecko.listen(9998);
+        etherscan.listen(9999);
 
-    //     const etherscan = http.createServer((req, res) => {
-    //         res.writeHead(200);
-    //         res.end(`{
-    //             "FastGasPrice": 37
-    //           }`);
-    //     });
+        await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
+    });
 
-    //     etherscan.listen(9999);
+    it("wrong etherscan gas price", async() => {
+        coingecko = http.createServer((req, res) => {
+            res.writeHead(200);
+            if (req.url.includes('ethereum')) {
+                res.end(`{ "ethereum": { "usd": 1715.93 } }`);
+            } else {
+                res.end(`{ "tether": { "usd": 1.002 } }`);
+            }
+        });
 
-    //     const fee = await calcCurrentRelayerFee("tether", false);
+        coingecko.listen(9998);
 
-    //     const expectedMinimumFee = Math.trunc(
-    //         Math.pow(10, process.env.ETH_SIDE_DECIMALS) * fee
-    //     );
+        etherscan = http.createServer((req, res) => {
+            res.writeHead(200);
+            res.end(`{
+                "FastGasPrice": "test"
+              }`);
+        });
 
-    //     console.log(fee);
-    //     console.log(expectedMinimumFee);
-    //     const t = BigInt(expectedMinimumFee);
-        
-    //     coingecko.close();
-    //     etherscan.close();
-    // });
+        etherscan.listen(9999);
 
-    // it("wrong etherscan gas price", async() => {
-    //     const coingecko = http.createServer((req, res) => {
-    //         res.writeHead(200);
-    //         if (req.url.includes('ethereum')) {
-    //             res.end(`{ "ethereum": { "usd": 1715.93 } }`);
-    //         } else {
-    //             res.end(`{ "tether": { "usd": 1.002 } }`);
-    //         }
-    //     });
-
-    //     coingecko.listen(9998);
-
-    //     const etherscan = http.createServer((req, res) => {
-    //         res.writeHead(200);
-    //         res.end(`{
-    //             "FastGasPrice": "test"
-    //           }`);
-    //     });
-
-    //     etherscan.listen(9999);
-
-    //     const fee = await calcCurrentRelayerFee("tether", false);
-
-    //     const expectedMinimumFee = Math.trunc(
-    //         Math.pow(10, process.env.ETH_SIDE_DECIMALS) * fee
-    //     );
-
-    //     console.log(fee);
-    //     console.log(expectedMinimumFee);
-    //     const t = BigInt(expectedMinimumFee);
-        
-    //     coingecko.close();
-    //     etherscan.close();
-    // });
+        await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
+    });
 
     it("other currency", async() => {
-        const coingecko = http.createServer((req, res) => {
+        coingecko = http.createServer((req, res) => {
             res.writeHead(200);
             if (req.url.includes('ethereum')) {
                 res.end(`{ "btc": { "usd": 1715.93 } }`);
@@ -233,7 +194,7 @@ describe("", () => {
 
         coingecko.listen(9998);
 
-        const etherscan = http.createServer((req, res) => {
+        etherscan = http.createServer((req, res) => {
             res.writeHead(200);
             res.end(`{
                 "FastGasPrice": 37
@@ -243,13 +204,10 @@ describe("", () => {
         etherscan.listen(9999);
 
         await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
-        
-        coingecko.close();
-        etherscan.close();
     });
 
     it("other currency 2", async() => {
-        const coingecko = http.createServer((req, res) => {
+        coingecko = http.createServer((req, res) => {
             res.writeHead(200);
             if (req.url.includes('ethereum')) {
                 res.end(`{ "ethereum": { "usd": 1715.93 } }`);
@@ -260,7 +218,7 @@ describe("", () => {
 
         coingecko.listen(9998);
 
-        const etherscan = http.createServer((req, res) => {
+        etherscan = http.createServer((req, res) => {
             res.writeHead(200);
             res.end(`{
                 "FastGasPrice": 37
@@ -270,13 +228,10 @@ describe("", () => {
         etherscan.listen(9999);
 
         await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
-        
-        coingecko.close();
-        etherscan.close();
     });
 
     // it("'FastGasPrice' is absent", async() => {
-    //     const coingecko = http.createServer((req, res) => {
+    //     coingecko = http.createServer((req, res) => {
     //         res.writeHead(200);
     //         if (req.url.includes('ethereum')) {
     //             res.end(`{ "ethereum": { "usd": 1715.93 } }`);
@@ -287,7 +242,7 @@ describe("", () => {
 
     //     coingecko.listen(9998);
 
-    //     const etherscan = http.createServer((req, res) => {
+    //     etherscan = http.createServer((req, res) => {
     //         res.writeHead(200);
     //         res.end(`{
     //             "test": 37
@@ -300,8 +255,5 @@ describe("", () => {
     //     console.log('fee= ', fee);
 
     //     //await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
-        
-    //     coingecko.close();
-    //     etherscan.close();
     // });
 });

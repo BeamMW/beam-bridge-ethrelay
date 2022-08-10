@@ -47,16 +47,26 @@ async function calcCurrentRelayerFee(rateId, useHttps = true) {
     const RELAY_COSTS_IN_GAS = 120000;
     const ETH_RATE_ID = "ethereum";
 
-    const gasPrice = await getGasPrice(useHttps);
-    const ethRate = await getCurrencyRate(ETH_RATE_ID, useHttps);
-    const relayCosts =
-        (RELAY_COSTS_IN_GAS *
-            parseFloat(gasPrice["FastGasPrice"]) *
-            parseFloat(ethRate[ETH_RATE_ID]["usd"])) /
-        Math.pow(10, 9);
-    const currRate = await getCurrencyRate(rateId, useHttps);
+    const gasPriceJson = await getGasPrice(useHttps);
+    const ethRateJson = await getCurrencyRate(ETH_RATE_ID, useHttps);
+    const gasPrice = parseFloat(gasPriceJson["FastGasPrice"]);
+    if (!isFinite(gasPrice)) {
+        throw new TypeError("Wrong gas price");
+    }
+    const ethRate = parseFloat(ethRateJson[ETH_RATE_ID]["usd"]);
+    if (!isFinite(ethRate)) {
+        throw new TypeError("Wrong ethereum rate");
+    }
+    const relayCosts = 
+        (RELAY_COSTS_IN_GAS * gasPrice * ethRate) / Math.pow(10, 9);
+    const currRateJson = await getCurrencyRate(rateId, useHttps);
+    const currRate = parseFloat(currRateJson[rateId]["usd"])
 
-    return relayCosts / parseFloat(currRate[rateId]["usd"]);
+    if (!isFinite(currRate) || currRate == 0) {
+        throw new TypeError(`Wrong ${rateId} rate`);
+    }
+
+    return relayCosts / currRate;
 }
 
 export {
