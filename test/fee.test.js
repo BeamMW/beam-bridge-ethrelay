@@ -230,30 +230,27 @@ describe("", () => {
         await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
     });
 
-    // it("'FastGasPrice' is absent", async() => {
-    //     coingecko = http.createServer((req, res) => {
-    //         res.writeHead(200);
-    //         if (req.url.includes('ethereum')) {
-    //             res.end(`{ "ethereum": { "usd": 1715.93 } }`);
-    //         } else {
-    //             res.end(`{ "tether": { "usd": 1.002 } }`);
-    //         }
-    //     });
+    it("'FastGasPrice' is absent", async() => {
+        coingecko = http.createServer((req, res) => {
+            res.writeHead(200);
+            if (req.url.includes('ethereum')) {
+                res.end(`{ "ethereum": { "usd": 1715.93 } }`);
+            } else {
+                res.end(`{ "tether": { "usd": 1.002 } }`);
+            }
+        });
 
-    //     coingecko.listen(9998);
+        coingecko.listen(9998);
 
-    //     etherscan = http.createServer((req, res) => {
-    //         res.writeHead(200);
-    //         res.end(`{
-    //             "test": 37
-    //           }`);
-    //     });
+        etherscan = http.createServer((req, res) => {
+            res.writeHead(200);
+            res.end(`{
+                "test": 37
+              }`);
+        });
 
-    //     etherscan.listen(9999);
-    //     const fee = await calcCurrentRelayerFee("tether", false);
-
-    //     console.log('fee= ', fee);
-
-    //     //await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
-    // });
+        etherscan.listen(9999);
+        
+        await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
+    });
 });

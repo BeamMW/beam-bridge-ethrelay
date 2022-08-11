@@ -26,7 +26,11 @@ function baseRequest(method, params, processResult) {
             });
 
             response.on('end', () => {
-                resolve(processResult(accumulated));
+                try {
+                    resolve(processResult(accumulated));
+                } catch (err) {
+                    reject(err);
+                }
             });
 
             response.on('error', reject);
