@@ -147,7 +147,9 @@ async function processLocalMsg(localMsg) {
         }
     }
 
-    await onProcessedLocalMsg(localMsg["msgId"], result, details);
+    if (result != ResultStatus.Other) {
+        await onProcessedLocalMsg(localMsg["msgId"], result, details);
+    }
 }
 
 async function monitorBridge() {
