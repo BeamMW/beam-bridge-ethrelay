@@ -10,4 +10,3 @@ else
   echo 'wallet.db is already restored! Ready for start up.'
   echo
 fi
-
