@@ -198,11 +198,19 @@ async function checkStuckMessages() {
     lowFeeMessagesRefreshCounter = 0;
     try {
         // retry to process stuck messages with low fee:
+        // 0) check if messages with low fee are exists
+        const kCountField = 'count';
+        const kTargetResultStatus = ResultStatus.SmallFee;
+        const countSql = `SELECT count(*) AS ${kCountField} FROM ${MESSAGES_TABLE} WHERE result=${kTargetResultStatus};`
+        const row = await db.get(countSql);
+        if (!row[kCountField]) {
+            return;
+        }
         // 1) get current estimated fee
         const expectedMinimumFee = await getCurrentMinRelayerFee();
         // 2) filter stuck messages with low fee error and reset them 'processed' to 0
         const updateSql = `UPDATE ${MESSAGES_TABLE} SET processed=0 WHERE processed=1 
-                            AND result=${ResultStatus.SmallFee} 
+                            AND result=${kTargetResultStatus} 
                             AND relayerFee>=${expectedMinimumFee};`;
         return db.run(updateSql);
     } catch (err) {
