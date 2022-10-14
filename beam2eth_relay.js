@@ -127,7 +127,7 @@ async function processLocalMsg(localMsg) {
         logger.info(`Starting the message transmission to the Ethereum. Message ID - ${localMsg["msgId"]}`);
 
         await eth.processRemoteMessage(
-            msgId,
+            localMsg["msgId"],
             amount,
             localMsg["receiver"],
             relayerFee
