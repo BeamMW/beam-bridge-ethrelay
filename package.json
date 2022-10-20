@@ -26,7 +26,7 @@
     "human-standard-token-abi": "^2.0.0",
     "sqlite": "^4.0.23",
     "sqlite3": "^5.0.2",
-    "web3": "^1.6.0",
+    "web3": "^1.8.0",
     "winston": "^3.3.3"
   },
   "resolutions": {
