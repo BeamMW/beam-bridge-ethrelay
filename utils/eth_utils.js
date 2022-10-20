@@ -17,6 +17,8 @@ export const requestToContract = async (sender, receiver, privateKey, abi, gasLi
         value: total,
         gas: gasLimit,
         nonce: nonce,
+        hardfork: process.env.ETH_HARDFORK,
+        chain: process.env.ETH_CHAIN,
     }, privateKey);
 
     try {
