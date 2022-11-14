@@ -34,9 +34,14 @@ function baseGetRequest(url, processResult, useHttps = true) {
     });
 }
 
-async function getCurrencyRate(rateId, useHttps = true) {
+async function getCurrencyRateInUSD(rateId, useHttps = true) {
     const url = `${process.env.COINGECKO_CURRENCY_RATE_API_URL}?ids=${rateId}&vs_currencies=usd`;
-    return baseGetRequest(url, JSON.parse, useHttps);
+    var resultJson = await baseGetRequest(url, JSON.parse, useHttps)
+    if (!resultJson.hasOwnProperty(rateId) || !resultJson[rateId].hasOwnProperty('usd')) {
+        resultJson = await baseGetRequest(process.env.RESERVE_CURRENCY_RATE_API_URL, JSON.parse, useHttps);
+    }
+
+    return parseFloat(resultJson[rateId]['usd'])
 }
 
 async function getGasPrice(useHttps = true) {
@@ -48,19 +53,17 @@ async function calcCurrentRelayerFee(rateId, useHttps = true) {
     const ETH_RATE_ID = "ethereum";
 
     const gasPriceJson = await getGasPrice(useHttps);
-    const ethRateJson = await getCurrencyRate(ETH_RATE_ID, useHttps);
     const gasPrice = parseFloat(gasPriceJson["FastGasPrice"]);
     if (!isFinite(gasPrice)) {
         throw new TypeError("Wrong gas price");
     }
-    const ethRate = parseFloat(ethRateJson[ETH_RATE_ID]["usd"]);
+    const ethRate = await getCurrencyRateInUSD(ETH_RATE_ID, useHttps);
     if (!isFinite(ethRate)) {
         throw new TypeError("Wrong ethereum rate");
     }
     const relayCosts = 
         (RELAY_COSTS_IN_GAS * gasPrice * ethRate) / Math.pow(10, 9);
-    const currRateJson = await getCurrencyRate(rateId, useHttps);
-    const currRate = parseFloat(currRateJson[rateId]["usd"])
+    const currRate = await getCurrencyRateInUSD(rateId, useHttps);
 
     if (!isFinite(currRate) || currRate == 0) {
         throw new TypeError(`Wrong ${rateId} rate`);
