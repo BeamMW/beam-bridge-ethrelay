@@ -11,6 +11,8 @@ import * as sqlite from "sqlite";
 import {UnexpectedAmountError, SmallFeeError} from "./utils/exceptions.js"
 import {calcCurrentRelayerFee} from "./utils/eth_fee.js"
 
+const MAX_ATTEMPTS = 3
+const ATTEMPT_COLUMN_NAME = 'attempt'
 const MESSAGES_TABLE = "messages";
 const ResultStatus = {
     None: 0,
@@ -59,8 +61,8 @@ async function getMaxMsgIdFromDB() {
     }
 }
 
-async function onProcessedLocalMsg(id, result, details) {
-    const updateSql = `UPDATE ${MESSAGES_TABLE} SET processed=1, result=${result}, details='${details}' WHERE msgId=${id}`;
+async function onProcessedLocalMsg(id, processed, result, details, attempt) {
+    const updateSql = `UPDATE ${MESSAGES_TABLE} SET processed=${Number(processed)}, result=${result}, details='${details}', ${ATTEMPT_COLUMN_NAME}=${attempt} WHERE msgId=${id}`;
     try {
         return db.run(updateSql);
     } catch (err) {
@@ -101,9 +103,11 @@ async function getCurrentMinRelayerFee() {
 
 async function processLocalMsg(localMsg) {
     let details = 'success';
+    let processed = 1;
     let result = ResultStatus.Success;
     try {
         logger.info(`Processing of a new message has started. Message ID - ${localMsg["msgId"]}`);
+        localMsg[ATTEMPT_COLUMN_NAME]++;
         let amount = preprocessAmount(localMsg["amount"]);
         let relayerFee = preprocessAmount(localMsg["relayerFee"]);
 
@@ -144,12 +148,11 @@ async function processLocalMsg(localMsg) {
             result = ResultStatus.SmallFee;
         } else {
             result = ResultStatus.Other;
+            processed = localMsg[ATTEMPT_COLUMN_NAME] >= MAX_ATTEMPTS;
         }
     }
 
-    if (result != ResultStatus.Other) {
-        await onProcessedLocalMsg(localMsg["msgId"], result, details);
-    }
+    await onProcessedLocalMsg(localMsg["msgId"], processed, result, details, localMsg[ATTEMPT_COLUMN_NAME]);
 }
 
 async function monitorBridge() {
@@ -234,9 +237,18 @@ async function checkStuckMessages() {
                             ,receiver TEXT NOT NULL
                             ,amount INTEGER NOT NULL DEFAULT 0
                             ,relayerFee INTEGER NOT NULL DEFAULT 0
+                            ,${ATTEMPT_COLUMN_NAME} INTEGER NOT NULL DEFAULT 0
                             ,UNIQUE(msgId));`;
 
     await db.exec(createTableSql);
+
+    // check if 'attempt' column is exist, else ADD to DB
+    const tablePragmaInfoSql = `PRAGMA table_info(${MESSAGES_TABLE});`
+    let result = await db.all(tablePragmaInfoSql);
+    if (result && result[result.length - 1]['name'] !== ATTEMPT_COLUMN_NAME) {
+        const addColumnSql = `ALTER TABLE ${MESSAGES_TABLE} ADD COLUMN ${ATTEMPT_COLUMN_NAME} INTEGER NOT NULL DEFAULT 0;`
+        await db.exec(addColumnSql);
+    }
 
     program.option("-m, --msgId <number>", "start message id");
     program.parse(process.argv);

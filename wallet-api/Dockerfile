@@ -14,9 +14,9 @@ COPY pipe_app.wasm /home/beam/wallet/pipe_app.wasm
 COPY token_app.wasm /home/beam/wallet/token_app.wasm
 
 ENV BEAM_WALLET_API_PORT=12011
-ENV NODE_ADR=localhost:12003
+ENV BEAM_NODE_ADR=localhost:12003
 ENV BEAM_CUSTOM_NETWORK_ARGS="--FakePoW=1 --Fork1=20 --Fork2=40 --Fork3=60 --Maturity.Coinbase=60"
 
 EXPOSE $BEAM_WALLET_API_PORT
 
-ENTRYPOINT /home/beam/wallet/init.sh && exec /home/beam/wallet/wallet-api -n $NODE_ADR ${BEAM_CUSTOM_NETWORK_ARGS} --pass=$WALLET_PASS --port=${BEAM_WALLET_API_PORT} --enable_assets --use_http=1
+ENTRYPOINT /home/beam/wallet/init.sh && exec /home/beam/wallet/wallet-api -n ${BEAM_NODE_ADR} ${BEAM_CUSTOM_NETWORK_ARGS} --pass=${WALLET_PASS} --port=${BEAM_WALLET_API_PORT} --enable_assets --use_http=1
