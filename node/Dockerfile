@@ -19,4 +19,4 @@ COPY init.sh /home/beam/wallet/init.sh
 
 EXPOSE ${BEAM_NODE_PORT}
 
-ENTRYPOINT . /home/beam/wallet/init.sh && printenv && exec /home/beam/node/${BEAM_NODE_BINARY} --port=${BEAM_NODE_PORT} --pass=${WALLET_PASS} --treasury_path=/home/beam/node/treasury.bin --owner_key=${OWNER_KEY} --peer=${BEAM_NODE_PEER} ${BEAM_CUSTOM_NETWORK_ARGS}
+ENTRYPOINT . /home/beam/wallet/init.sh && printenv && exec /home/beam/node/${BEAM_NODE_BINARY} --port=${BEAM_NODE_PORT} --pass=${WALLET_PASS} --treasury_path=/home/beam/node/treasury.bin --owner_key=${OWNER_KEY} --peer=${BEAM_NODE_PEER} ${BEAM_CUSTOM_NETWORK_ARGS} --fast_sync on
