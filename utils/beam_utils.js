@@ -210,7 +210,8 @@ const getLocalMsg = (msgId) => {
             return {
                 'receiver': output['receiver'],
                 'amount': output['amount'],
-                'relayerFee': output['relayerFee']
+                'relayerFee': output['relayerFee'],
+                'height': output['height']
             };
         }
     );
