@@ -1,9 +1,9 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 RUN  mkdir -p /home/beam/node/ && mkdir -p /home/beam/data/ && mkdir -p /home/beam/wallet/
 
-ENV BEAM_NODE_BINARY=beam-node-dappnet
-ENV BEAM_WALLET_BINARY=beam-wallet-dappnet
+ENV BEAM_NODE_BINARY=beam-node
+ENV BEAM_WALLET_BINARY=beam-wallet
 ENV OWNER_KEY="m6o4tcBSyWlwstgcfClsCYVh2eclN92e7wRdqF6RXQuE3pHtLZ9UhhuziMyhKqXKzfApx5iUKD4S9cZn8BNcpOqJxgslOyRRhlNHZlgdjOJZhj82k4kqUWF27hij+o7ZBuR9wWFh6KpdG9kp"
 ENV BEAM_NODE_PEER=eu-node02.dappnet.beam.mw:8100,eu-node04.dappnet.beam.mw:8100
 ENV BEAM_NODE_PORT=12003
@@ -19,4 +19,4 @@ COPY init.sh /home/beam/wallet/init.sh
 
 EXPOSE ${BEAM_NODE_PORT}
 
-ENTRYPOINT . /home/beam/wallet/init.sh && printenv && exec /home/beam/node/${BEAM_NODE_BINARY} --port=${BEAM_NODE_PORT} --pass=${WALLET_PASS} --treasury_path=/home/beam/node/treasury.bin --owner_key=${OWNER_KEY} --peer=${BEAM_NODE_PEER} ${BEAM_CUSTOM_NETWORK_ARGS} --fast_sync on
+ENTRYPOINT . /home/beam/wallet/init.sh && printenv && exec /home/beam/node/${BEAM_NODE_BINARY} --network=dappnet --port=${BEAM_NODE_PORT} --pass=${WALLET_PASS} --treasury_path=/home/beam/node/treasury.bin --owner_key=${OWNER_KEY} --peer=${BEAM_NODE_PEER} ${BEAM_CUSTOM_NETWORK_ARGS} --fast_sync on

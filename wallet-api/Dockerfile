@@ -1,11 +1,11 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 RUN  mkdir -p /home/beam/wallet/ && mkdir -p /home/beam/data/
 
 WORKDIR /home/beam/data/
 
-ENV BEAM_WALLET_API_BINARY="wallet-api-dappnet"
-ENV BEAM_WALLET_BINARY="beam-wallet-dappnet"
+ENV BEAM_WALLET_API_BINARY="wallet-api"
+ENV BEAM_WALLET_BINARY="beam-wallet"
 
 COPY ${BEAM_WALLET_API_BINARY} /home/beam/wallet/wallet-api
 COPY ${BEAM_WALLET_BINARY} /home/beam/wallet/beam-wallet
@@ -19,4 +19,4 @@ ENV BEAM_CUSTOM_NETWORK_ARGS="--FakePoW=1 --Fork1=20 --Fork2=40 --Fork3=60 --Mat
 
 EXPOSE $BEAM_WALLET_API_PORT
 
-ENTRYPOINT /home/beam/wallet/init.sh && exec /home/beam/wallet/wallet-api -n ${BEAM_NODE_ADR} ${BEAM_CUSTOM_NETWORK_ARGS} --pass=${WALLET_PASS} --port=${BEAM_WALLET_API_PORT} --enable_assets --use_http=1
+ENTRYPOINT /home/beam/wallet/init.sh && exec /home/beam/wallet/wallet-api --network=dappnet -n ${BEAM_NODE_ADR} ${BEAM_CUSTOM_NETWORK_ARGS} --pass=${WALLET_PASS} --port=${BEAM_WALLET_API_PORT} --enable_assets --use_http=1
