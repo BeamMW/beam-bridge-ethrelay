@@ -3,7 +3,7 @@ trap '' INT
 OWNER_KEY_FILE=owner_key.txt
 BEAM_WALLET_DB_PATH=/home/beam/data/wallet.db
 if [ ! -f "wallet.db" ]; then
-  /home/beam/wallet/beam-wallet --network=dappnet --pass=$WALLET_PASS --wallet_path=$BEAM_WALLET_DB_PATH restore --seed_phrase=$SEED_PHRASE
+  /home/beam/wallet/beam-wallet --network=mainnet --pass=$WALLET_PASS --wallet_path=$BEAM_WALLET_DB_PATH restore --seed_phrase=$SEED_PHRASE
   echo
   echo 'wallet.db restore process done.'
   echo
@@ -13,7 +13,7 @@ else
   echo
 fi
 if [ ! -f $OWNER_KEY_FILE ]; then
-  output=$(/home/beam/wallet/beam-wallet --network=dappnet --pass=$WALLET_PASS --wallet_path=$BEAM_WALLET_DB_PATH export_owner_key | tail -1)
+  output=$(/home/beam/wallet/beam-wallet --network=mainnet --pass=$WALLET_PASS --wallet_path=$BEAM_WALLET_DB_PATH export_owner_key | tail -1)
   echo $output
   # skip "Owner Viewer key: " in output and save to OWNER_KEY_FILE
   outputlen=${#output}

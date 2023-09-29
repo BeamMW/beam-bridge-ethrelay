@@ -19,4 +19,4 @@ ENV BEAM_CUSTOM_NETWORK_ARGS="--FakePoW=1 --Fork1=20 --Fork2=40 --Fork3=60 --Mat
 
 EXPOSE $BEAM_WALLET_API_PORT
 
-ENTRYPOINT /home/beam/wallet/init.sh && exec /home/beam/wallet/wallet-api --network=dappnet -n ${BEAM_NODE_ADR} ${BEAM_CUSTOM_NETWORK_ARGS} --pass=${WALLET_PASS} --port=${BEAM_WALLET_API_PORT} --enable_assets --use_http=1
+ENTRYPOINT /home/beam/wallet/init.sh && exec /home/beam/wallet/wallet-api --network=mainnet -n ${BEAM_NODE_ADR} ${BEAM_CUSTOM_NETWORK_ARGS} --pass=${WALLET_PASS} --port=${BEAM_WALLET_API_PORT} --enable_assets --use_http=1
