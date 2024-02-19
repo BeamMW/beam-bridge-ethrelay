@@ -193,6 +193,15 @@ async function monitorBridge() {
     setTimeout(monitorBridge, process.env.BEAM_BLOCK_CREATION_PERIOD);
 }
 
+function convertToBeam(amount) {
+    if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
+        return Math.trunc(amount / Math.pow(10, process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS));
+    } else if (process.env.ETH_SIDE_DECIMALS < beam.BEAM_MAX_DECIMALS) {
+        return amount * Math.pow(10, beam.BEAM_MAX_DECIMALS - process.env.ETH_SIDE_DECIMALS);
+    }
+    return amount;
+}
+
 async function checkStuckMessages() {
     if (lowFeeMessagesRefreshCounter < process.env.LOW_FEE_MESSAGES_REFRESH_INTERVAL) {
         lowFeeMessagesRefreshCounter++;
@@ -210,7 +219,7 @@ async function checkStuckMessages() {
             return;
         }
         // 1) get current estimated fee
-        const expectedMinimumFee = await getCurrentMinRelayerFee();
+        const expectedMinimumFee = convertToBeam(await getCurrentMinRelayerFee());
         // 2) filter stuck messages with low fee error and reset them 'processed' to 0
         const updateSql = `UPDATE ${MESSAGES_TABLE} SET processed=0 WHERE processed=1 
                             AND result=${kTargetResultStatus} 
