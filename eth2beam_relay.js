@@ -125,9 +125,7 @@ async function processEvent(event, attempt) {
         }
 
         if (relayerFee === undefined) {
-            throw new UnexpectedAmountError(
-                `Unexpected relayer fee. relayerFee = ${event["returnValues"]["relayerFee"]}`
-            );
+            relayerFee = 0
         }
 
         const result = await beam.bridgePushRemote(
