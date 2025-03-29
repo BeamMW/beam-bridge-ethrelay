@@ -241,8 +241,8 @@ async function getStartBlockFromDB() {
         // Enable auto reconnection
         reconnect: {
             auto: true,
-            delay: 5000, // ms
-            maxAttempts: 5,
+            delay: 10000, // ms
+            maxAttempts: 100,
             onTimeout: false,
         },
     };
