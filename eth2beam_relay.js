@@ -13,6 +13,7 @@ import {UnexpectedAmountError, ExistMessageError, InvalidTxStatusError} from "./
 
 const EVENTS_TABLE = "events";
 let db = undefined;
+let web3 = undefined;
 let eventsInProgress = new Set();
 const ResultStatus = {
     None: 0,
@@ -127,6 +128,29 @@ async function processEvent(event, attempt) {
         if (relayerFee === undefined) {
             throw new UnexpectedAmountError(
                 `Unexpected relayer fee. relayerFee = ${event["returnValues"]["relayerFee"]}`
+            );
+        }
+
+        // Get all Transfer events for the ERC20 token in the given block and to the recipient address
+        const transferEventSignature = web3.utils.keccak256("Transfer(address,address,uint256)");
+        const receiver = event["address"];
+        // Format the receiver topic as 32 bytes with proper padding
+        const receiverTopic = "0x" + web3.utils.padLeft(receiver.replace("0x", ""), 64);
+
+        const transferEvents = await web3.eth.getPastLogs({
+            fromBlock: event["blockNumber"],
+            toBlock: event["blockNumber"],
+            address: process.env.ETH_TOKEN_CONTRACT,
+            topics: [
+                transferEventSignature,
+                null,
+                receiverTopic
+            ]
+        });
+
+        if (!(transferEvents.length === 1 &&  BigInt(web3.utils.hexToNumberString(transferEvents[0]["data"])) == BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"]))) {
+            throw new UnexpectedAmountError(
+                `Unexpected amount in Transfer event. Expected: ${BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"])}, got: ${web3.utils.hexToNumberString(transferEvents[0]["data"])}`
             );
         }
 
@@ -246,7 +270,7 @@ async function getStartBlockFromDB() {
             onTimeout: false,
         },
     };
-    let web3 = new Web3(
+    web3 = new Web3(
         new Web3.providers.WebsocketProvider(
             process.env.ETH_WEBSOCKET_PROVIDER,
             web3ProviderOptions
