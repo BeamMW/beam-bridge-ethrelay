@@ -149,9 +149,27 @@ async function processEvent(event, attempt) {
                 ]
             });
 
-            if (!(transferEvents.length === 1 &&  BigInt(web3.utils.hexToNumberString(transferEvents[0]["data"])) == BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"]))) {
+            const txValue = BigInt(web3.utils.hexToNumberString(transferEvents[0]["data"]));
+            const expectedValue = BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"]);
+
+            if (!(transferEvents.length === 1 &&  txValue === expectedValue)) {
                 throw new UnexpectedAmountError(
                     `Unexpected amount in Transfer event. Expected: ${BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"])}, got: ${web3.utils.hexToNumberString(transferEvents[0]["data"])}`
+                );
+            }
+        } else {
+            // Get the transaction details for ETH transfer
+            const tx = await web3.eth.getTransaction(event["transactionHash"]);
+            if (!tx) {
+                throw new Error(`Transaction not found: ${event["transactionHash"]}`);
+            }
+
+            const txValue = BigInt(tx.value);
+            const expectedValue = BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"]);
+            
+            if (txValue !== expectedValue) {
+                throw new UnexpectedAmountError(
+                    `Unexpected transaction value. Expected: ${expectedValue}, got: ${txValue}`
                 );
             }
         }
