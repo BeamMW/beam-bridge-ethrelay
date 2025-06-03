@@ -131,6 +131,8 @@ async function processEvent(event, attempt) {
             );
         }
 
+        const expectedValue = BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"]);
+
         if (web3.utils.isAddress(process.env.ETH_TOKEN_CONTRACT)) {
             // Get all Transfer events for the ERC20 token in the given block and to the recipient address
             const transferEventSignature = web3.utils.keccak256("Transfer(address,address,uint256)");
@@ -150,11 +152,10 @@ async function processEvent(event, attempt) {
             });
 
             const txValue = BigInt(web3.utils.hexToNumberString(transferEvents[0]["data"]));
-            const expectedValue = BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"]);
 
             if (!(transferEvents.length === 1 &&  txValue === expectedValue)) {
                 throw new UnexpectedAmountError(
-                    `Unexpected amount in Transfer event. Expected: ${BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"])}, got: ${web3.utils.hexToNumberString(transferEvents[0]["data"])}`
+                    `Unexpected amount in Transfer event. Expected: ${expectedValue}, got: ${txValue}`
                 );
             }
         } else {
@@ -165,7 +166,6 @@ async function processEvent(event, attempt) {
             }
 
             const txValue = BigInt(tx.value);
-            const expectedValue = BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"]);
             
             if (txValue !== expectedValue) {
                 throw new UnexpectedAmountError(
