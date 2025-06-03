@@ -118,18 +118,6 @@ async function processEvent(event, attempt) {
     let errMessage = '';
     try {
         attempt++;
-        let amount = preprocessAmount(event["returnValues"]["amount"]);
-        let relayerFee = preprocessAmount(event["returnValues"]["relayerFee"]);
-
-        if (amount === undefined) {
-            throw new UnexpectedAmountError(`Unexpected amount. Amount = ${event["returnValues"]["amount"]}`);
-        }
-
-        if (relayerFee === undefined) {
-            throw new UnexpectedAmountError(
-                `Unexpected relayer fee. relayerFee = ${event["returnValues"]["relayerFee"]}`
-            );
-        }
 
         const expectedValue = BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"]);
 
@@ -181,6 +169,19 @@ async function processEvent(event, attempt) {
                     `Unexpected transaction value. Expected: ${expectedValue}, got: ${txValue}`
                 );
             }
+        }
+
+        let amount = preprocessAmount(event["returnValues"]["amount"]);
+        let relayerFee = preprocessAmount(event["returnValues"]["relayerFee"]);
+
+        if (amount === undefined) {
+            throw new UnexpectedAmountError(`Unexpected amount. Amount = ${event["returnValues"]["amount"]}`);
+        }
+
+        if (relayerFee === undefined) {
+            throw new UnexpectedAmountError(
+                `Unexpected relayer fee. relayerFee = ${event["returnValues"]["relayerFee"]}`
+            );
         }
 
         const result = await beam.bridgePushRemote(
