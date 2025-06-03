@@ -1,4 +1,4 @@
-Create two wallets on each side. The first wallet for deplot and call it "Owner", the second for management - "Manager".
+Create two wallets on each side. The first wallet for deploy and call it "Owner", the second for management - "Manager".
 After all the contracts are deposited and configured, the wallet "Owner" is no longer used.
 
 Fetch the code from the repository:

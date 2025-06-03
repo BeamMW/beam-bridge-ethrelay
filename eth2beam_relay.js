@@ -13,6 +13,7 @@ import {UnexpectedAmountError, ExistMessageError, InvalidTxStatusError} from "./
 
 const EVENTS_TABLE = "events";
 let db = undefined;
+let web3 = undefined;
 let eventsInProgress = new Set();
 const ResultStatus = {
     None: 0,
@@ -117,6 +118,59 @@ async function processEvent(event, attempt) {
     let errMessage = '';
     try {
         attempt++;
+
+        const expectedValue = BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"]);
+
+        if (web3.utils.isAddress(process.env.ETH_TOKEN_CONTRACT)) {
+            // Get all Transfer events for the ERC20 token in the given block and to the recipient address
+            const transferEventSignature = web3.utils.keccak256("Transfer(address,address,uint256)");
+            const receiver = event["address"];
+            // Format the receiver topic as 32 bytes with proper padding
+            const receiverTopic = "0x" + web3.utils.padLeft(receiver.replace("0x", ""), 64);
+
+            const transferEvents = await web3.eth.getPastLogs({
+                fromBlock: event["blockNumber"],
+                toBlock: event["blockNumber"],
+                address: process.env.ETH_TOKEN_CONTRACT,
+                topics: [
+                    transferEventSignature,
+                    null,
+                    receiverTopic
+                ]
+            });
+
+            // Find the specific Transfer event matching our transaction hash
+            const matchingTransfer = transferEvents.find(transfer => transfer.transactionHash === event["transactionHash"]);
+
+            if (!matchingTransfer) {
+                throw new UnexpectedAmountError(
+                    `No Transfer event found in transaction ${event["transactionHash"]}`
+                );
+            }
+
+            const txValue = BigInt(web3.utils.hexToNumberString(matchingTransfer.data));
+
+            if (txValue !== expectedValue) {
+                throw new UnexpectedAmountError(
+                    `Unexpected amount in Transfer event. Expected: ${expectedValue}, got: ${txValue}`
+                );
+            }
+        } else {
+            // Get the transaction details for ETH transfer
+            const tx = await web3.eth.getTransaction(event["transactionHash"]);
+            if (!tx) {
+                throw new Error(`Transaction not found: ${event["transactionHash"]}`);
+            }
+
+            const txValue = BigInt(tx.value);
+            
+            if (txValue !== expectedValue) {
+                throw new UnexpectedAmountError(
+                    `Unexpected transaction value. Expected: ${expectedValue}, got: ${txValue}`
+                );
+            }
+        }
+
         let amount = preprocessAmount(event["returnValues"]["amount"]);
         let relayerFee = preprocessAmount(event["returnValues"]["relayerFee"]);
 
@@ -244,7 +298,7 @@ async function getStartBlockFromDB() {
             onTimeout: false,
         },
     };
-    let web3 = new Web3(
+    web3 = new Web3(
         new Web3.providers.WebsocketProvider(
             process.env.ETH_WEBSOCKET_PROVIDER,
             web3ProviderOptions
