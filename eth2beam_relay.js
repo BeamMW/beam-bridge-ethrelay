@@ -151,9 +151,18 @@ async function processEvent(event, attempt) {
                 ]
             });
 
-            const txValue = BigInt(web3.utils.hexToNumberString(transferEvents[0]["data"]));
+            // Find the specific Transfer event matching our transaction hash
+            const matchingTransfer = transferEvents.find(transfer => transfer.transactionHash === event["transactionHash"]);
 
-            if (!(transferEvents.length === 1 &&  txValue === expectedValue)) {
+            if (!matchingTransfer) {
+                throw new UnexpectedAmountError(
+                    `No Transfer event found in transaction ${event["transactionHash"]}`
+                );
+            }
+
+            const txValue = BigInt(web3.utils.hexToNumberString(matchingTransfer.data));
+
+            if (txValue !== expectedValue) {
                 throw new UnexpectedAmountError(
                     `Unexpected amount in Transfer event. Expected: ${expectedValue}, got: ${txValue}`
                 );
