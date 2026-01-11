@@ -9,6 +9,12 @@ function baseGetRequest(url, processResult, useHttps = true) {
     return new Promise((resolve, reject) => {
         let accumulated = "";
 
+        const options = {
+            headers: {
+                'User-Agent': 'Beam-Bridge-EthRelay/1.0'
+            }
+        };
+
         const callback = (response) => {
             // same as above
             response.on("data", (chunk) => {
@@ -27,9 +33,9 @@ function baseGetRequest(url, processResult, useHttps = true) {
         };
 
         if (useHttps) {
-            https.get(url, callback).on("error", reject);
+            https.get(url, options, callback).on("error", reject);
         } else {
-            http.get(url, callback).on("error", reject);
+            http.get(url, options, callback).on("error", reject);
         }
     });
 }
@@ -38,7 +44,9 @@ async function getCurrencyRateInUSD(rateId, useHttps = true) {
     const url = `${process.env.COINGECKO_CURRENCY_RATE_API_URL}?ids=${rateId}&vs_currencies=usd`;
     var resultJson = await baseGetRequest(url, JSON.parse, useHttps)
     if (!resultJson.hasOwnProperty(rateId) || !resultJson[rateId].hasOwnProperty('usd')) {
-        resultJson = await baseGetRequest(process.env.RESERVE_CURRENCY_RATE_API_URL, JSON.parse, useHttps);
+        console.log("resultJson from primary source:", resultJson);
+        const reserveUrl = `${process.env.RESERVE_CURRENCY_RATE_API_URL}?ids=${rateId}&vs_currencies=usd`;
+        resultJson = await baseGetRequest(reserveUrl, JSON.parse, useHttps);
     }
 
     return parseFloat(resultJson[rateId]['usd'])
