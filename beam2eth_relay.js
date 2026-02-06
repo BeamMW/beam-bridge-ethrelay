@@ -139,6 +139,7 @@ async function processLocalMsg(localMsg) {
 
         logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${localMsg["msgId"]}`);
     } catch (err) {
+        processed = 0;
         details = `Failed to push remote message #${localMsg["msgId"]}. Details: ${err.message}`;
         logger.error(details);
 
