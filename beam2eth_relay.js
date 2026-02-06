@@ -148,7 +148,8 @@ async function processLocalMsg(localMsg) {
             result = ResultStatus.SmallFee;
         } else {
             result = ResultStatus.Other;
-            processed = localMsg[ATTEMPT_COLUMN_NAME] >= MAX_ATTEMPTS;
+            // TODO disabled because it is unnecessary to stop processing after MAX_ATTEMPTS
+            // processed = localMsg[ATTEMPT_COLUMN_NAME] >= MAX_ATTEMPTS;
         }
     }
 
