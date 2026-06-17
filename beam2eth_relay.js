@@ -139,7 +139,6 @@ async function processLocalMsg(localMsg) {
 
         logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${localMsg["msgId"]}`);
     } catch (err) {
-        processed = 0;
         details = `Failed to push remote message #${localMsg["msgId"]}. Details: ${err.message}`;
         logger.error(details);
 
@@ -149,8 +148,7 @@ async function processLocalMsg(localMsg) {
             result = ResultStatus.SmallFee;
         } else {
             result = ResultStatus.Other;
-            // TODO disabled because it is unnecessary to stop processing after MAX_ATTEMPTS
-            // processed = localMsg[ATTEMPT_COLUMN_NAME] >= MAX_ATTEMPTS;
+            processed = localMsg[ATTEMPT_COLUMN_NAME] >= MAX_ATTEMPTS;
         }
     }
 
