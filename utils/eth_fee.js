@@ -58,7 +58,7 @@ async function getGasPrice(useHttps = true) {
 }
 
 async function calcCurrentRelayerFee(rateId, useHttps = true) {
-    const RELAY_COSTS_IN_GAS = 120000;
+    const RELAY_COSTS_IN_GAS = 96000;
     const ETH_RATE_ID = "ethereum";
 
     const gasPriceJson = await getGasPrice(useHttps);
