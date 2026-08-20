@@ -4,6 +4,7 @@ dotenv.config();
 
 import http from "http";
 import https from "https";
+import { estimateMaxGasPriceInGwei } from "./eth_gas.js";
 
 function baseGetRequest(url, processResult, useHttps = true) {
     return new Promise((resolve, reject) => {
@@ -52,17 +53,14 @@ async function getCurrencyRateInUSD(rateId, useHttps = true) {
     return parseFloat(resultJson[rateId]['usd'])
 }
 
-async function getGasPrice(useHttps = true) {
-    return baseGetRequest(process.env.GAS_PRICE_API_URL, JSON.parse, useHttps);
-}
-
 async function calcCurrentRelayerFee(rateId, useHttps = true) {
     const RELAY_COSTS_IN_GAS = 120000;
     const ETH_RATE_ID = "ethereum";
 
-    const gasPriceJson = await getGasPrice(useHttps);
-    const gasPrice = parseFloat(gasPriceJson["FastGasPrice"]);
-    if (!isFinite(gasPrice)) {
+    // the same estimation that the relayer uses to send the transaction:
+    // maxFeePerGas is the upper bound of the price we can actually pay
+    const gasPrice = await estimateMaxGasPriceInGwei();
+    if (!isFinite(gasPrice) || gasPrice == 0) {
         throw new TypeError("Wrong gas price");
     }
     const ethRate = await getCurrencyRateInUSD(ETH_RATE_ID, useHttps);

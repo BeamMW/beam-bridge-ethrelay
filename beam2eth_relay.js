@@ -139,6 +139,7 @@ async function processLocalMsg(localMsg) {
 
         logger.info(`The message was successfully transferred to the Ethereum. Message ID - ${localMsg["msgId"]}`);
     } catch (err) {
+        processed = 0;
         details = `Failed to push remote message #${localMsg["msgId"]}. Details: ${err.message}`;
         logger.error(details);
 
@@ -221,6 +222,8 @@ async function checkStuckMessages() {
         }
         // 1) get current estimated fee
         const expectedMinimumFee = convertToBeam(await getCurrentMinRelayerFee());
+
+        logger.info(`Found ${row[kCountField]} messages with SmallFee status. Current minimum relayer fee: ${expectedMinimumFee}`);
         // 2) filter stuck messages with low fee error and reset them 'processed' to 0
         const updateSql = `UPDATE ${MESSAGES_TABLE} SET processed=0 WHERE processed=1 
                             AND result=${kTargetResultStatus} 

@@ -1,15 +1,20 @@
-import Web3 from 'web3';
 import PipeContract from "./EthPipeContractABI.js";
 import logger from "./../logger.js"
+import { getWeb3, estimateFeeParams } from "./eth_gas.js"
 
-let web3 = new Web3(new Web3.providers.HttpProvider(process.env.ETH_HTTP_PROVIDER));
+let web3 = getWeb3();
 const pipeContract = new web3.eth.Contract(
     PipeContract.abi,
     process.env.ETH_PIPE_CONTRACT_ADDRESS
 );
 
 export const requestToContract = async (sender, receiver, privateKey, abi, gasLimit, total = 0) => {
+    if (!gasLimit) {
+        throw new Error('gas limit is not set');
+    }
     const nonce = await web3.eth.getTransactionCount(sender);
+    const feeParams = await estimateFeeParams();
+
     const signedTx = await web3.eth.accounts.signTransaction({
         from: sender,
         to: receiver,
@@ -17,6 +22,8 @@ export const requestToContract = async (sender, receiver, privateKey, abi, gasLi
         value: total,
         gas: gasLimit,
         nonce: nonce,
+        maxFeePerGas: feeParams.maxFeePerGas,
+        maxPriorityFeePerGas: feeParams.maxPriorityFeePerGas,
         hardfork: process.env.ETH_HARDFORK,
         chain: process.env.ETH_CHAIN,
     }, privateKey);
@@ -42,4 +49,3 @@ export const processRemoteMessage = async (msgId, amount, receiver, relayerFee) 
         pushRemote.encodeABI(),
         process.env.ETH_PIPE_PUSH_REMOTE_GAS_LIMIT);
 }
-
