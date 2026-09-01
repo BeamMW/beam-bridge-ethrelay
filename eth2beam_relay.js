@@ -12,6 +12,7 @@ import PipeContract from "./utils/EthPipeContractABI.js";
 import {UnexpectedAmountError, ExistMessageError, InvalidTxStatusError} from "./utils/exceptions.js"
 
 const EVENTS_TABLE = "events";
+const MAX_UINT256 = (1n << 256n) - 1n;
 let db = undefined;
 let web3 = undefined;
 let eventsInProgress = new Set();
@@ -115,9 +116,28 @@ async function processEvent(event, attempt) {
     try {
         attempt++;
 
-        const expectedValue = BigInt(event["returnValues"]["amount"]) + BigInt(event["returnValues"]["relayerFee"]);
+        // The pipe contract (solidity ^0.7.2) computes `total = value + relayerFee` with
+        // unchecked arithmetic, so an overflowing pair wraps `total` around zero and lets
+        // the caller emit a huge `amount` while paying almost nothing.
+        const amountValue = BigInt(event["returnValues"]["amount"]);
+        const relayerFeeValue = BigInt(event["returnValues"]["relayerFee"]);
 
+        if (amountValue > MAX_UINT256 - relayerFeeValue) {
+            throw new UnexpectedAmountError(
+                `Overflow of amount + relayerFee. Amount: ${amountValue}, relayerFee: ${relayerFeeValue}`
+            );
+        }
+
+        // For ETH that is enough - EthPipe requires `msg.value == total` on-chain and the
+        // deposit cannot arrive short. Deliberately not checking the value of the outer
+        // transaction here: the funds may reach the pipe through an internal call (smart
+        // account, multisig, delegation), in which case `tx.value` is 0.
+        // An ERC20 transfer, on the other hand, can deliver less than it was asked for
+        // (USDT can be switched to fee-on-transfer by its owner at any time), so the amount
+        // that actually reached the pipe is verified against the Transfer log.
         if (web3.utils.isAddress(process.env.ETH_TOKEN_CONTRACT)) {
+            const expectedValue = amountValue + relayerFeeValue;
+
             // Get all Transfer events for the ERC20 token in the given block and to the recipient address
             const transferEventSignature = web3.utils.keccak256("Transfer(address,address,uint256)");
             const receiver = event["address"];
@@ -149,20 +169,6 @@ async function processEvent(event, attempt) {
             if (txValue !== expectedValue) {
                 throw new UnexpectedAmountError(
                     `Unexpected amount in Transfer event. Expected: ${expectedValue}, got: ${txValue}`
-                );
-            }
-        } else {
-            // Get the transaction details for ETH transfer
-            const tx = await web3.eth.getTransaction(event["transactionHash"]);
-            if (!tx) {
-                throw new Error(`Transaction not found: ${event["transactionHash"]}`);
-            }
-
-            const txValue = BigInt(tx.value);
-            
-            if (txValue !== expectedValue) {
-                throw new UnexpectedAmountError(
-                    `Unexpected transaction value. Expected: ${expectedValue}, got: ${txValue}`
                 );
             }
         }
