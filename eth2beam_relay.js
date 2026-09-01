@@ -92,12 +92,8 @@ async function onGotNewBlock(blockHeader) {
 function preprocessAmount(value) {
     if (process.env.ETH_SIDE_DECIMALS > beam.BEAM_MAX_DECIMALS) {
         const diff = process.env.ETH_SIDE_DECIMALS - beam.BEAM_MAX_DECIMALS;
-        // check that amount contains this count of zeros at the end
-        const endedStr = "0".repeat(diff);
-        if (value.endsWith(endedStr)) {
-            // remove zeros
-            return value.slice(0, -diff);
-        }
+        // cut off the extra decimals
+        return value.length > diff ? value.slice(0, -diff) : "0";
     } else if (process.env.ETH_SIDE_DECIMALS < beam.BEAM_MAX_DECIMALS) {
         const diff = beam.BEAM_MAX_DECIMALS - process.env.ETH_SIDE_DECIMALS;
         return value.padEnd(value.length + diff, "0");
