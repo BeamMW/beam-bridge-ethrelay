@@ -14,6 +14,8 @@ import {calcCurrentRelayerFee} from "./utils/eth_fee.js"
 const MAX_ATTEMPTS = 3
 const ATTEMPT_COLUMN_NAME = 'attempt'
 const MESSAGES_TABLE = "messages";
+const MAX_MESSAGE_AMOUNT_IN_BEAMS = 3000000n;
+const MAX_MESSAGE_AMOUNT = MAX_MESSAGE_AMOUNT_IN_BEAMS * (10n ** BigInt(beam.BEAM_MAX_DECIMALS));
 const ResultStatus = {
     None: 0,
     Success: 1,
@@ -71,6 +73,25 @@ async function onProcessedLocalMsg(id, processed, result, details, attempt) {
     }
 }
 
+// The Beam side keeps amounts in uint64 groth. A message declaring more than the bridge
+// can ever hold means the shader state is wrong - e.g. the m_Amount + m_RelayerFee sum in
+// SendFunds wrapped around uint64 and locked far less than the message declares. Refuse to
+// widen such a value into the uint256 amount of the Ethereum contract.
+function checkAmountLimit(name, value) {
+    let amountInGroth;
+
+    try {
+        amountInGroth = BigInt(value);
+    } catch (err) {
+        throw new UnexpectedAmountError(`${name} is not an integer. ${name} = ${value}`);
+    }
+
+    if (amountInGroth < 0n || amountInGroth > MAX_MESSAGE_AMOUNT) {
+        throw new UnexpectedAmountError(
+            `${name} is out of the allowed range. ${name} = ${value}, limit = ${MAX_MESSAGE_AMOUNT} groth`);
+    }
+}
+
 function preprocessAmount(value) {
     let strValue = value.toString();
 
@@ -108,6 +129,10 @@ async function processLocalMsg(localMsg) {
     try {
         logger.info(`Processing of a new message has started. Message ID - ${localMsg["msgId"]}`);
         localMsg[ATTEMPT_COLUMN_NAME]++;
+
+        checkAmountLimit('Amount', localMsg["amount"]);
+        checkAmountLimit('relayerFee', localMsg["relayerFee"]);
+
         let amount = preprocessAmount(localMsg["amount"]);
         let relayerFee = preprocessAmount(localMsg["relayerFee"]);
 
