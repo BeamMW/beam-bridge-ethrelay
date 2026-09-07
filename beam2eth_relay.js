@@ -79,12 +79,8 @@ function preprocessAmount(value) {
         return strValue.padEnd(strValue.length + diff, "0");
     } else if (process.env.ETH_SIDE_DECIMALS < beam.BEAM_MAX_DECIMALS) {
         const diff = beam.BEAM_MAX_DECIMALS - process.env.ETH_SIDE_DECIMALS;
-        // check that amount contains this count of zeros at the end
-        let endedStr = "0".repeat(diff);
-        if (strValue.endsWith(endedStr)) {
-            // remove zeros
-            return strValue.slice(0, -diff);
-        }
+        // cut off the extra decimals
+        return strValue.length > diff ? strValue.slice(0, -diff) : "0";
     } else { // process.env.ETH_SIDE_DECIMALS === beam.BEAM_MAX_DECIMALS
         return strValue;
     }
