@@ -35,6 +35,8 @@ describe("", () => {
     // responses of the reserve rate source, used by the "reserve" tests only
     let reserveEthRateResponse;
     let reserveCurrRateResponse;
+    // CoinGecko key headers of the received rate requests, by the request path
+    let receivedKeys;
 
     // the servers are shared by all the tests: closing and reopening the same
     // port between them races with the keep-alive sockets of the http provider
@@ -44,6 +46,7 @@ describe("", () => {
         process.env.ETH_HTTP_PROVIDER = "http://127.0.0.1:9999";
 
         coingecko = http.createServer((req, res) => {
+            receivedKeys[req.url] = req.headers['x-cg-demo-api-key'];
             const isEth = req.url.includes('ethereum');
             const body = req.url.startsWith('/reserve')
                 ? (isEth ? reserveEthRateResponse : reserveCurrRateResponse)
@@ -81,6 +84,8 @@ describe("", () => {
         reserveEthRateResponse = ETH_OK;
         reserveCurrRateResponse = TETHER_OK;
         process.env.RESERVE_CURRENCY_RATE_API_URL = "";
+        process.env.COINGECKO_API_KEY = "";
+        receivedKeys = {};
     });
 
     after(() => {
@@ -144,6 +149,28 @@ describe("", () => {
         reserveEthRateResponse = HTML_PAGE;
 
         await assert.rejects(calcCurrentRelayerFee("tether", false), CurrencyRateError);
+    });
+
+    it("api key is sent to coingecko", async() => {
+        process.env.COINGECKO_API_KEY = "test-key";
+
+        await calcCurrentRelayerFee("tether", false);
+        const keys = Object.values(receivedKeys);
+        assert.strictEqual(keys.length, 2);
+        assert.ok(keys.every((key) => key === "test-key"));
+    });
+
+    it("api key is not sent to the reserve source", async() => {
+        process.env.COINGECKO_API_KEY = "test-key";
+        process.env.RESERVE_CURRENCY_RATE_API_URL = "http://127.0.0.1:9998/reserve";
+        ethRateResponse = HTML_PAGE;
+
+        await calcCurrentRelayerFee("tether", false);
+        const reserveKeys = Object.entries(receivedKeys)
+            .filter(([url]) => url.startsWith('/reserve'))
+            .map(([, key]) => key);
+        assert.strictEqual(reserveKeys.length, 1);
+        assert.strictEqual(reserveKeys[0], undefined);
     });
 
     it("empty response of the node", async() => {
