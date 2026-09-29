@@ -10,13 +10,14 @@ import { CurrencyRateError } from "./exceptions.js";
 // how much of an unexpected response is kept in the error message
 const MAX_RESPONSE_EXCERPT = 100;
 
-function baseGetRequest(url, processResult, useHttps = true) {
+function baseGetRequest(url, processResult, useHttps = true, headers = {}) {
     return new Promise((resolve, reject) => {
         let accumulated = "";
 
         const options = {
             headers: {
-                'User-Agent': 'Beam-Bridge-EthRelay/1.0'
+                'User-Agent': 'Beam-Bridge-EthRelay/1.0',
+                ...headers
             }
         };
 
@@ -65,10 +66,21 @@ function parseRateInUSD(data, rateId) {
     return rate;
 }
 
-async function requestRateInUSD(apiUrl, rateId, useHttps) {
+// CoinGecko expects the key in a header, its name depends on the plan:
+// the Pro API lives on its own domain, everything else is the Demo API
+function coingeckoHeaders(apiUrl) {
+    const apiKey = process.env.COINGECKO_API_KEY;
+    if (!apiKey) {
+        return {};
+    }
+    const isPro = String(apiUrl).includes('pro-api.coingecko.com');
+    return { [isPro ? 'x-cg-pro-api-key' : 'x-cg-demo-api-key']: apiKey };
+}
+
+async function requestRateInUSD(apiUrl, rateId, useHttps, headers = {}) {
     const url = `${apiUrl}?ids=${rateId}&vs_currencies=usd`;
     try {
-        return await baseGetRequest(url, (data) => parseRateInUSD(data, rateId), useHttps);
+        return await baseGetRequest(url, (data) => parseRateInUSD(data, rateId), useHttps, headers);
     } catch (err) {
         throw new CurrencyRateError(`Failed to get the ${rateId} rate from ${apiUrl}. ${err.message}`);
     }
@@ -76,12 +88,14 @@ async function requestRateInUSD(apiUrl, rateId, useHttps) {
 
 async function getCurrencyRateInUSD(rateId, useHttps = true) {
     try {
-        return await requestRateInUSD(process.env.COINGECKO_CURRENCY_RATE_API_URL, rateId, useHttps);
+        const apiUrl = process.env.COINGECKO_CURRENCY_RATE_API_URL;
+        return await requestRateInUSD(apiUrl, rateId, useHttps, coingeckoHeaders(apiUrl));
     } catch (err) {
         if (!process.env.RESERVE_CURRENCY_RATE_API_URL) {
             throw err;
         }
         console.log(`${err.message} Trying the reserve source.`);
+        // the key is not sent to the reserve source: it belongs to CoinGecko only
         return await requestRateInUSD(process.env.RESERVE_CURRENCY_RATE_API_URL, rateId, useHttps);
     }
 }
