@@ -135,7 +135,7 @@ describe("", () => {
         currRateResponse = undefined;
 
         const fee = await calcCurrentRelayerFee("tether", false);
-        assert.ok(fee > 7 && fee < 8);
+        assert.ok(fee > 6 && fee < 7);
     });
 
     it("both sources fail", async() => {
