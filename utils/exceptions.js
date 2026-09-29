@@ -26,9 +26,19 @@ class SmallFeeError extends Error {
     }
 }
 
+// the currency rate API is unavailable or returned an unexpected response
+// (e.g. an HTML page of a rate limiter instead of JSON)
+class CurrencyRateError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = "CurrencyRateError";
+    }
+}
+
 export {
     UnexpectedAmountError,
     ExistMessageError,
     InvalidTxStatusError,
-    SmallFeeError
+    SmallFeeError,
+    CurrencyRateError
 }
