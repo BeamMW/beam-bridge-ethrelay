@@ -10,6 +10,15 @@ import * as sqlite from "sqlite";
 import logger from "./logger.js"
 import PipeContract from "./utils/EthPipeContractABI.js";
 import {UnexpectedAmountError, ExistMessageError, InvalidTxStatusError} from "./utils/exceptions.js"
+import {
+    createStateTable,
+    getLastBlock,
+    saveLastBlock,
+    getMaxScanRange,
+    resolveStartBlock,
+    withRetry,
+    scanPastEvents,
+} from "./utils/eth_scan.js";
 
 const EVENTS_TABLE = "events";
 const MAX_UINT256 = (1n << 256n) - 1n;
@@ -248,7 +257,7 @@ async function getStartBlockFromDB() {
             const maxProcessedBlockSql = `SELECT block FROM ${EVENTS_TABLE} WHERE processed=1 ORDER BY block DESC LIMIT 1;`;
             row = await db.get(maxProcessedBlockSql);
         }
-        return row["block"];
+        return row ? row["block"] : undefined;
     } catch (err) {
         logger.error("Failed to get start block from DB - " + err.message);
         throw err;
@@ -275,21 +284,12 @@ async function getStartBlockFromDB() {
 
     await db.exec(createTableSql);
 
+    await createStateTable(db);
+
     program.option("-b, --startBlock <number>", "start block");
     program.parse(process.argv);
 
     const options = program.opts();
-    let startBlock = 0;
-
-    if (options.startBlock !== undefined) {
-        startBlock = options.startBlock;
-    } else {
-        try {
-            startBlock = await getStartBlockFromDB();
-        } catch (error) {
-            logger.error("Failed to load startBlock - ", error);
-        }
-    }
 
     const web3ProviderOptions = {
         // Enable auto reconnection
@@ -311,12 +311,46 @@ async function getStartBlockFromDB() {
         process.env.ETH_PIPE_CONTRACT_ADDRESS
     );
 
-    // subscribe to Pipe.NewLocalMessage
+    const maxScanRange = getMaxScanRange();
+    let headBlock;
+    try {
+        headBlock = await withRetry(() => web3.eth.getBlockNumber(), "Getting of the current block");
+    } catch (err) {
+        logger.error("Failed to get the current block - " + err.message);
+        setTimeout(() => process.exit(1), 1000);
+        return;
+    }
+
+    let lastBlock;
+    let dbStartBlock;
+    try {
+        lastBlock = await getLastBlock(db);
+        dbStartBlock = await getStartBlockFromDB();
+    } catch (error) {
+        logger.error("Failed to load startBlock - ", error);
+    }
+
+    const { startBlock, skipped } = resolveStartBlock({
+        cliStartBlock: options.startBlock !== undefined ? parseInt(options.startBlock) : undefined,
+        lastBlock,
+        dbStartBlock,
+        headBlock,
+        maxScanRange,
+    });
+
+    if (skipped) {
+        logger.warn(
+            `The last scanned block ${skipped.fromBlock} is too far from the current block ${headBlock}. ` +
+            `Blocks ${skipped.fromBlock}..${skipped.toBlock} are skipped, ` +
+            `run with --startBlock ${skipped.fromBlock} to recover them.`
+        );
+    }
+
+    // subscribe to Pipe.NewLocalMessage before the scan so there is no gap between them,
+    // duplicates are ignored by addEvent
     const eventSubscription = pipeContract.events
         .NewLocalMessage(
-            {
-                fromBlock: startBlock,
-            },
+            {},
             function (error, event) {
             }
         )
@@ -343,6 +377,18 @@ async function getStartBlockFromDB() {
             }
         });
 
+    logger.info(`Scanning of past events from block ${startBlock} to block ${headBlock}`);
+    try {
+        await scanPastEvents(pipeContract, startBlock, headBlock, maxScanRange, addEvent);
+    } catch (err) {
+        logger.error("Failed to scan past events - " + err.message);
+        setTimeout(() => process.exit(1), 1000);
+        return;
+    }
+    await saveLastBlock(db, headBlock);
+
+    // subscribe to new blocks only after the scan, otherwise the last block
+    // could move forward while the scan is not finished
     const newBlockSubscription = web3.eth
         .subscribe("newBlockHeaders")
         .on("connected", function (subscriptionId) {
@@ -352,6 +398,7 @@ async function getStartBlockFromDB() {
             );
         })
         .on("data", async function (blockHeader) {
+            await saveLastBlock(db, blockHeader["number"]);
             await onGotNewBlock(blockHeader);
         })
         .on("error", logger.error);

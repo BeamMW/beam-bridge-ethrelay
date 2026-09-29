@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "preinstall": "npx npm-force-resolutions",
-    "test": "mocha ./test/fee.test.js"
+    "test": "mocha ./test/*.test.js"
   },
   "repository": {
     "type": "git",
