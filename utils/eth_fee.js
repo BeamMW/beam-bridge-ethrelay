@@ -5,6 +5,10 @@ dotenv.config();
 import http from "http";
 import https from "https";
 import { estimateMaxGasPriceInGwei } from "./eth_gas.js";
+import { CurrencyRateError } from "./exceptions.js";
+
+// how much of an unexpected response is kept in the error message
+const MAX_RESPONSE_EXCERPT = 100;
 
 function baseGetRequest(url, processResult, useHttps = true) {
     return new Promise((resolve, reject) => {
@@ -23,6 +27,10 @@ function baseGetRequest(url, processResult, useHttps = true) {
             });
 
             response.on("end", () => {
+                if (response.statusCode !== 200) {
+                    reject(new Error(`HTTP ${response.statusCode}: ${accumulated.slice(0, MAX_RESPONSE_EXCERPT)}`));
+                    return;
+                }
                 try {
                     resolve(processResult(accumulated));
                 } catch (err) {
@@ -41,16 +49,40 @@ function baseGetRequest(url, processResult, useHttps = true) {
     });
 }
 
-async function getCurrencyRateInUSD(rateId, useHttps = true) {
-    const url = `${process.env.COINGECKO_CURRENCY_RATE_API_URL}?ids=${rateId}&vs_currencies=usd`;
-    var resultJson = await baseGetRequest(url, JSON.parse, useHttps)
-    if (!resultJson.hasOwnProperty(rateId) || !resultJson[rateId].hasOwnProperty('usd')) {
-        console.log("resultJson from primary source:", resultJson);
-        const reserveUrl = `${process.env.RESERVE_CURRENCY_RATE_API_URL}?ids=${rateId}&vs_currencies=usd`;
-        resultJson = await baseGetRequest(reserveUrl, JSON.parse, useHttps);
+function parseRateInUSD(data, rateId) {
+    let json;
+    try {
+        json = JSON.parse(data);
+    } catch (err) {
+        throw new CurrencyRateError(`Unexpected response: ${data.slice(0, MAX_RESPONSE_EXCERPT)}`);
     }
 
-    return parseFloat(resultJson[rateId]['usd'])
+    const rate = json && json[rateId] ? parseFloat(json[rateId]['usd']) : NaN;
+    if (!isFinite(rate) || rate <= 0) {
+        throw new CurrencyRateError(`Wrong ${rateId} rate: ${data.slice(0, MAX_RESPONSE_EXCERPT)}`);
+    }
+    return rate;
+}
+
+async function requestRateInUSD(apiUrl, rateId, useHttps) {
+    const url = `${apiUrl}?ids=${rateId}&vs_currencies=usd`;
+    try {
+        return await baseGetRequest(url, (data) => parseRateInUSD(data, rateId), useHttps);
+    } catch (err) {
+        throw new CurrencyRateError(`Failed to get the ${rateId} rate from ${apiUrl}. ${err.message}`);
+    }
+}
+
+async function getCurrencyRateInUSD(rateId, useHttps = true) {
+    try {
+        return await requestRateInUSD(process.env.COINGECKO_CURRENCY_RATE_API_URL, rateId, useHttps);
+    } catch (err) {
+        if (!process.env.RESERVE_CURRENCY_RATE_API_URL) {
+            throw err;
+        }
+        console.log(`${err.message} Trying the reserve source.`);
+        return await requestRateInUSD(process.env.RESERVE_CURRENCY_RATE_API_URL, rateId, useHttps);
+    }
 }
 
 async function calcCurrentRelayerFee(rateId, useHttps = true) {
@@ -63,17 +95,11 @@ async function calcCurrentRelayerFee(rateId, useHttps = true) {
     if (!isFinite(gasPrice) || gasPrice == 0) {
         throw new TypeError("Wrong gas price");
     }
+    // the rates are validated by getCurrencyRateInUSD: finite and positive
     const ethRate = await getCurrencyRateInUSD(ETH_RATE_ID, useHttps);
-    if (!isFinite(ethRate)) {
-        throw new TypeError("Wrong ethereum rate");
-    }
     const relayCosts = 
         (RELAY_COSTS_IN_GAS * gasPrice * ethRate) / Math.pow(10, 9);
     const currRate = await getCurrencyRateInUSD(rateId, useHttps);
-
-    if (!isFinite(currRate) || currRate == 0) {
-        throw new TypeError(`Wrong ${rateId} rate`);
-    }
 
     return relayCosts / currRate;
 }

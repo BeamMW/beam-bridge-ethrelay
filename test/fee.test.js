@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import http from "http";
 import {calcCurrentRelayerFee} from "./../utils/eth_fee.js"
+import {CurrencyRateError} from "./../utils/exceptions.js"
 import assert from "assert";
 
 const GWEI = BigInt(10) ** BigInt(9);
@@ -22,6 +23,7 @@ const feeHistory = (baseFeeGwei = BASE_FEE_GWEI, tipGwei = TIP_GWEI) => ({
 
 const ETH_OK = `{ "ethereum": { "usd": 1715.93 } }`;
 const TETHER_OK = `{ "tether": { "usd": 1.002 } }`;
+const HTML_PAGE = `<!DOCTYPE html><html><head><title>Just a moment...</title></head></html>`;
 
 describe("", () => {
     let coingecko;
@@ -30,15 +32,22 @@ describe("", () => {
     let nodeResult;
     let ethRateResponse;
     let currRateResponse;
+    // responses of the reserve rate source, used by the "reserve" tests only
+    let reserveEthRateResponse;
+    let reserveCurrRateResponse;
 
     // the servers are shared by all the tests: closing and reopening the same
     // port between them races with the keep-alive sockets of the http provider
     before(() => {
         process.env.COINGECKO_CURRENCY_RATE_API_URL = "http://127.0.0.1:9998";
+        process.env.RESERVE_CURRENCY_RATE_API_URL = "";
         process.env.ETH_HTTP_PROVIDER = "http://127.0.0.1:9999";
 
         coingecko = http.createServer((req, res) => {
-            const body = req.url.includes('ethereum') ? ethRateResponse : currRateResponse;
+            const isEth = req.url.includes('ethereum');
+            const body = req.url.startsWith('/reserve')
+                ? (isEth ? reserveEthRateResponse : reserveCurrRateResponse)
+                : (isEth ? ethRateResponse : currRateResponse);
             res.writeHead(body === undefined ? 404 : 200);
             res.end(body === undefined ? "" : body);
         });
@@ -69,6 +78,9 @@ describe("", () => {
         nodeResult = feeHistory();
         ethRateResponse = ETH_OK;
         currRateResponse = TETHER_OK;
+        reserveEthRateResponse = ETH_OK;
+        reserveCurrRateResponse = TETHER_OK;
+        process.env.RESERVE_CURRENCY_RATE_API_URL = "";
     });
 
     after(() => {
@@ -101,14 +113,37 @@ describe("", () => {
     it("divide by zero", async() => {
         currRateResponse = `{ "tether": { "usd": 0 } }`;
 
-        await assert.rejects(calcCurrentRelayerFee("tether", false));
+        await assert.rejects(calcCurrentRelayerFee("tether", false), CurrencyRateError);
     });
 
     it("empty response of coingecko", async() => {
         ethRateResponse = undefined;
         currRateResponse = undefined;
 
-        await assert.rejects(calcCurrentRelayerFee("tether", false), SyntaxError);
+        await assert.rejects(calcCurrentRelayerFee("tether", false), CurrencyRateError);
+    });
+
+    it("html response of coingecko", async() => {
+        ethRateResponse = HTML_PAGE;
+
+        await assert.rejects(calcCurrentRelayerFee("tether", false), CurrencyRateError);
+    });
+
+    it("reserve source is used when coingecko fails", async() => {
+        process.env.RESERVE_CURRENCY_RATE_API_URL = "http://127.0.0.1:9998/reserve";
+        ethRateResponse = HTML_PAGE;
+        currRateResponse = undefined;
+
+        const fee = await calcCurrentRelayerFee("tether", false);
+        assert.ok(fee > 7 && fee < 8);
+    });
+
+    it("both sources fail", async() => {
+        process.env.RESERVE_CURRENCY_RATE_API_URL = "http://127.0.0.1:9998/reserve";
+        ethRateResponse = HTML_PAGE;
+        reserveEthRateResponse = HTML_PAGE;
+
+        await assert.rejects(calcCurrentRelayerFee("tether", false), CurrencyRateError);
     });
 
     it("empty response of the node", async() => {
@@ -139,24 +174,24 @@ describe("", () => {
     it("wrong ethereum rate", async() => {
         ethRateResponse = `{ "ethereum": { "usd": "test" } }`;
 
-        await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
+        await assert.rejects(calcCurrentRelayerFee("tether", false), CurrencyRateError);
     });
 
     it("wrong tether rate", async() => {
         currRateResponse = `{ "tether": { "usd": "test" } }`;
 
-        await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
+        await assert.rejects(calcCurrentRelayerFee("tether", false), CurrencyRateError);
     });
 
     it("other currency", async() => {
         ethRateResponse = `{ "btc": { "usd": 1715.93 } }`;
 
-        await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
+        await assert.rejects(calcCurrentRelayerFee("tether", false), CurrencyRateError);
     });
 
     it("other currency 2", async() => {
         currRateResponse = `{ "btc": { "usd": 1.002 } }`;
 
-        await assert.rejects(calcCurrentRelayerFee("tether", false), TypeError);
+        await assert.rejects(calcCurrentRelayerFee("tether", false), CurrencyRateError);
     });
 });

@@ -8,7 +8,7 @@ import { program } from "commander";
 import logger from "./logger.js"
 import sqlite3 from "sqlite3";
 import * as sqlite from "sqlite";
-import {UnexpectedAmountError, SmallFeeError} from "./utils/exceptions.js"
+import {UnexpectedAmountError, SmallFeeError, CurrencyRateError} from "./utils/exceptions.js"
 import {calcCurrentRelayerFee} from "./utils/eth_fee.js"
 
 const MAX_ATTEMPTS = 3
@@ -62,9 +62,10 @@ async function getMaxMsgIdFromDB() {
 }
 
 async function onProcessedLocalMsg(id, processed, result, details, attempt) {
-    const updateSql = `UPDATE ${MESSAGES_TABLE} SET processed=${Number(processed)}, result=${result}, details='${details}', ${ATTEMPT_COLUMN_NAME}=${attempt} WHERE msgId=${id}`;
+    // details may contain quotes (e.g. an excerpt of an unexpected response), so it is passed as a parameter
+    const updateSql = `UPDATE ${MESSAGES_TABLE} SET processed=${Number(processed)}, result=${result}, details=?, ${ATTEMPT_COLUMN_NAME}=${attempt} WHERE msgId=${id}`;
     try {
-        return db.run(updateSql);
+        return db.run(updateSql, [details]);
     } catch (err) {
         logger.error("Failed to update message - " + err.message, " msgID: ", id);
         throw err;
@@ -142,6 +143,12 @@ async function processLocalMsg(localMsg) {
             result = ResultStatus.UnexpectedAmount;
         } else if (err instanceof SmallFeeError) {
             result = ResultStatus.SmallFee;
+        } else if (err instanceof CurrencyRateError) {
+            // the currency rate API is temporarily unavailable, it is not a problem of the message:
+            // keep it unprocessed and don't count the attempt
+            result = ResultStatus.Other;
+            processed = 0;
+            localMsg[ATTEMPT_COLUMN_NAME]--;
         } else {
             result = ResultStatus.Other;
             processed = localMsg[ATTEMPT_COLUMN_NAME] >= MAX_ATTEMPTS;
